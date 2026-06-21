@@ -4,7 +4,6 @@ import Footer from '../components/Footer'
 
 export default function Home() {
   const [dismissed, setDismissed] = useState(false)
-  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     document.title = 'FrameX | Share Your World in Frames'
@@ -47,6 +46,26 @@ export default function Home() {
     }
     window.addEventListener('mousemove', handleMouse)
 
+    // Hero media viewport entrance
+    const heroMedia = document.querySelector('.hero-media')
+    if (heroMedia) {
+      const mediaObserver = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('card-entered')
+            mediaObserver.unobserve(entry.target)
+          }
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      )
+      mediaObserver.observe(heroMedia)
+      return () => {
+        revealObserver.disconnect()
+        window.removeEventListener('mousemove', handleMouse)
+        mediaObserver.disconnect()
+      }
+    }
+
     return () => {
       revealObserver.disconnect()
       window.removeEventListener('mousemove', handleMouse)
@@ -56,11 +75,9 @@ export default function Home() {
   return (
     <>
       <div className="aurora-bg">
-        <div className="aurora-blob aurora-blob--1" />
-        <div className="aurora-blob aurora-blob--2" />
       </div>
 
-      <Nav onLoginClick={() => setShowModal(true)} />
+      <Nav />
 
       {/* Hero */}
       <section className="hero" id="hero">
@@ -188,103 +205,7 @@ export default function Home() {
 
       <Footer />
 
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowModal(false)} aria-label="Close modal">
-              <i className="fas fa-times" />
-            </button>
-            <div className="modal-header">
-              <div className="modal-logo">F</div>
-              <h2>Welcome to FrameX</h2>
-              <p>Sign in to continue</p>
-            </div>
-            <div className="modal-body">
-              <button className="social-btn social-btn--google">
-                <i className="fab fa-google" /> Continue with Google
-              </button>
-              <button className="social-btn social-btn--facebook">
-                <i className="fab fa-facebook-f" /> Continue with Facebook
-              </button>
-              <button className="social-btn social-btn--github">
-                <i className="fab fa-github" /> Continue with GitHub
-              </button>
-              <button className="social-btn social-btn--x">
-                <i className="fab fa-x-twitter" /> Continue with X
-              </button>
-            </div>
-            <div className="modal-footer">
-              <span>By continuing, you agree to our</span>
-              <a href="/terms">Terms of Service</a>
-              <span> and </span>
-              <a href="/privacy">Privacy Policy</a>
-            </div>
-          </div>
-        </div>
-      )}
-
       <style>{`
-        /* ===== AURORA BACKGROUND ===== */
-        .aurora-bg {
-            position: fixed;
-            inset: 0;
-            z-index: -1;
-            overflow: hidden;
-            background: var(--color-bg);
-        }
-
-        .aurora-bg::before,
-        .aurora-bg::after {
-            content: '';
-            position: absolute;
-            width: 80vmax;
-            height: 80vmax;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.3;
-            animation: auroraDrift 20s ease-in-out infinite alternate;
-        }
-
-        .aurora-bg::before {
-            background: radial-gradient(circle, var(--color-amber), transparent 70%);
-            top: -20vmax;
-            left: -10vmax;
-            animation-delay: 0s;
-        }
-
-        .aurora-bg::after {
-            background: radial-gradient(circle, var(--color-violet), transparent 70%);
-            bottom: -20vmax;
-            right: -10vmax;
-            animation-delay: -10s;
-        }
-
-        .aurora-blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.15;
-            animation: auroraDrift 25s ease-in-out infinite alternate;
-        }
-
-        .aurora-blob--1 {
-            width: 60vmax;
-            height: 60vmax;
-            background: radial-gradient(circle, var(--color-rose), transparent 70%);
-            top: 30%;
-            right: -20%;
-            animation-delay: -5s;
-        }
-
-        .aurora-blob--2 {
-            width: 50vmax;
-            height: 50vmax;
-            background: radial-gradient(circle, var(--color-crimson), transparent 70%);
-            bottom: 10%;
-            left: -15%;
-            animation-delay: -15s;
-        }
-
         /* ===== HERO ===== */
         .hero {
             display: flex;
@@ -366,9 +287,19 @@ export default function Home() {
             flex: 1;
             max-width: 480px;
             position: relative;
-            animation: fadeSlideUp 0.8s ease forwards;
-            animation-delay: 0.5s;
             opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .hero-media.card-entered {
+            opacity: 1;
+            transform: translateY(0);
+            animation: heroFloat 6s ease-in-out infinite 2s;
+        }
+
+        @keyframes heroFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
         .glass-card-stack {
@@ -395,32 +326,11 @@ export default function Home() {
         }
 
         .glass-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.08) 0%,
-                transparent 50%
-            );
-            border-radius: 24px;
-            pointer-events: none;
+            display: none;
         }
 
         .glass-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-                115deg,
-                transparent 30%,
-                rgba(255, 255, 255, 0.04) 37%,
-                rgba(255, 255, 255, 0.08) 40%,
-                rgba(255, 255, 255, 0.04) 43%,
-                transparent 50%
-            );
-            border-radius: 24px;
-            pointer-events: none;
+            display: none;
         }
 
         .glass-card-decoration {
@@ -428,7 +338,7 @@ export default function Home() {
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            background: radial-gradient(circle, var(--color-amber), transparent 70%);
+            background: rgba(204, 255, 0, 0.08);
             opacity: 0.1;
             top: -30px;
             right: -30px;
@@ -438,7 +348,7 @@ export default function Home() {
         .glass-card-decoration--2 {
             width: 80px;
             height: 80px;
-            background: radial-gradient(circle, var(--color-violet), transparent 70%);
+            background: rgba(204, 255, 0, 0.06);
             bottom: -20px;
             left: -20px;
             top: auto;
@@ -558,19 +468,7 @@ export default function Home() {
         }
 
         .feature-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-                105deg,
-                transparent 25%,
-                rgba(255, 255, 255, 0.04) 32%,
-                rgba(255, 255, 255, 0.08) 36%,
-                rgba(255, 255, 255, 0.04) 40%,
-                transparent 47%
-            );
-            border-radius: 20px;
-            pointer-events: none;
+            display: none;
         }
 
         .feature-card::after {
@@ -831,136 +729,6 @@ export default function Home() {
             box-shadow: var(--shadow-glass);
         }
 
-        /* ===== MODAL ===== */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 2000;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .modal-card {
-            width: 90%;
-            max-width: 400px;
-            padding: 2.5rem 2rem;
-            background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
-            backdrop-filter: blur(var(--glass-blur));
-            -webkit-backdrop-filter: blur(var(--glass-blur));
-            border-radius: 28px;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
-            position: relative;
-            animation: fadeSlideUp 0.3s ease;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            color: rgba(255,255,255,0.5);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.8rem;
-        }
-
-        .modal-close:hover {
-            background: rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.8);
-        }
-
-        .modal-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .modal-logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: var(--gradient-accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #08080f;
-            margin: 0 auto 1rem;
-        }
-
-        .modal-header h2 {
-            font-size: 1.4rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .modal-header p {
-            color: rgba(255,255,255,0.45);
-            font-size: 0.9rem;
-        }
-
-        .modal-body {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            background: var(--color-glass);
-            border: var(--glass-border);
-            border-radius: 12px;
-            color: rgba(255,255,255,0.7);
-            font-size: 0.9rem;
-            font-family: var(--font-body);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            transition: all 0.3s ease;
-        }
-
-        .social-btn:hover {
-            background: var(--color-glass-hover);
-            border-color: rgba(255,255,255,0.15);
-            color: #fff;
-            transform: translateY(-1px);
-        }
-
-        .social-btn i {
-            font-size: 1.1rem;
-        }
-
-        .modal-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            color: rgba(255,255,255,0.3);
-            font-size: 0.78rem;
-            line-height: 1.6;
-        }
-
-        .modal-footer a {
-            color: var(--color-amber);
-            transition: color 0.3s ease;
-        }
-
-        .modal-footer a:hover {
-            color: #fff;
-        }
-
         /* ===== RESPONSIVE ===== */
         @media (max-width: 968px) {
             .hero {
@@ -990,13 +758,24 @@ export default function Home() {
             .hero-content h1 {
                 font-size: 2.2rem;
             }
+            .hero-content p {
+                max-width: 100%;
+            }
+            .hero-media {
+                width: 88%;
+                max-width: 340px;
+                margin: 2rem auto 0;
+            }
+            .glass-card-stack {
+                aspect-ratio: 4 / 5;
+            }
             .hero-stat--1 {
-                right: 0;
-                top: -15%;
+                right: -3%;
+                top: -12%;
             }
             .hero-stat--2 {
-                left: 0;
-                bottom: 5%;
+                left: -3%;
+                bottom: 8%;
             }
         }
 

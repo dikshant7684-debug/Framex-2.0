@@ -10,8 +10,6 @@ export default function Terms() {
   return (
     <>
       <div className="aurora-bg">
-        <div className="aurora-blob aurora-blob--1" />
-        <div className="aurora-blob aurora-blob--2" />
       </div>
 
       <Nav />
@@ -57,67 +55,6 @@ export default function Terms() {
       <Footer />
 
       <style>{`
-        /* ===== AURORA BACKGROUND ===== */
-        .aurora-bg {
-            position: fixed;
-            inset: 0;
-            z-index: -1;
-            overflow: hidden;
-            background: var(--color-bg);
-        }
-
-        .aurora-bg::before,
-        .aurora-bg::after {
-            content: '';
-            position: absolute;
-            width: 80vmax;
-            height: 80vmax;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.3;
-            animation: auroraDrift 20s ease-in-out infinite alternate;
-        }
-
-        .aurora-bg::before {
-            background: radial-gradient(circle, var(--color-amber), transparent 70%);
-            top: -20vmax;
-            left: -10vmax;
-            animation-delay: 0s;
-        }
-
-        .aurora-bg::after {
-            background: radial-gradient(circle, var(--color-violet), transparent 70%);
-            bottom: -20vmax;
-            right: -10vmax;
-            animation-delay: -10s;
-        }
-
-        .aurora-blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.15;
-            animation: auroraDrift 25s ease-in-out infinite alternate;
-        }
-
-        .aurora-blob--1 {
-            width: 60vmax;
-            height: 60vmax;
-            background: radial-gradient(circle, var(--color-rose), transparent 70%);
-            top: 30%;
-            right: -20%;
-            animation-delay: -5s;
-        }
-
-        .aurora-blob--2 {
-            width: 50vmax;
-            height: 50vmax;
-            background: radial-gradient(circle, var(--color-crimson), transparent 70%);
-            bottom: 10%;
-            left: -15%;
-            animation-delay: -15s;
-        }
-
         /* ===== TERMS PAGE ===== */
         .terms-section {
             padding: 8rem 5% 4rem;

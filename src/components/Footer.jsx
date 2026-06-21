@@ -64,12 +64,7 @@ export default function Footer() {
 
         .footer-divider {
             height: 1px;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.08),
-                transparent
-            );
+            background: rgba(255, 255, 255, 0.06);
             margin-bottom: 1.5rem;
         }
 

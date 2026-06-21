@@ -38,7 +38,7 @@ export default function Login() {
           password
         })
         if (signInError) throw signInError
-        navigate('/chat')
+        navigate('/home')
       }
     } catch (err) {
       setError(err.message)
@@ -58,8 +58,6 @@ export default function Login() {
   return (
     <>
       <div className="aurora-bg">
-        <div className="aurora-blob aurora-blob--1" />
-        <div className="aurora-blob aurora-blob--2" />
       </div>
 
       <Nav />
@@ -157,67 +155,6 @@ export default function Login() {
       <Footer />
 
       <style>{`
-        /* ===== AURORA BACKGROUND ===== */
-        .aurora-bg {
-            position: fixed;
-            inset: 0;
-            z-index: -1;
-            overflow: hidden;
-            background: var(--color-bg);
-        }
-
-        .aurora-bg::before,
-        .aurora-bg::after {
-            content: '';
-            position: absolute;
-            width: 80vmax;
-            height: 80vmax;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.3;
-            animation: auroraDrift 20s ease-in-out infinite alternate;
-        }
-
-        .aurora-bg::before {
-            background: radial-gradient(circle, var(--color-amber), transparent 70%);
-            top: -20vmax;
-            left: -10vmax;
-            animation-delay: 0s;
-        }
-
-        .aurora-bg::after {
-            background: radial-gradient(circle, var(--color-violet), transparent 70%);
-            bottom: -20vmax;
-            right: -10vmax;
-            animation-delay: -10s;
-        }
-
-        .aurora-blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.15;
-            animation: auroraDrift 25s ease-in-out infinite alternate;
-        }
-
-        .aurora-blob--1 {
-            width: 60vmax;
-            height: 60vmax;
-            background: radial-gradient(circle, var(--color-rose), transparent 70%);
-            top: 30%;
-            right: -20%;
-            animation-delay: -5s;
-        }
-
-        .aurora-blob--2 {
-            width: 50vmax;
-            height: 50vmax;
-            background: radial-gradient(circle, var(--color-crimson), transparent 70%);
-            bottom: 10%;
-            left: -15%;
-            animation-delay: -15s;
-        }
-
         /* ===== AUTH PAGE (Login / Sign Up) ===== */
         .auth-section {
             padding: 8rem 5% 4rem;
@@ -234,11 +171,7 @@ export default function Login() {
             position: relative;
             isolation: isolate;
             overflow: hidden;
-            background: linear-gradient(
-                180deg,
-                rgba(255, 255, 255, 0.06) 0%,
-                rgba(255, 255, 255, 0.02) 100%
-            );
+            background: rgba(255, 255, 255, 0.04);
             backdrop-filter: blur(var(--glass-blur));
             -webkit-backdrop-filter: blur(var(--glass-blur));
             border-radius: 28px;
@@ -248,24 +181,7 @@ export default function Login() {
         }
 
         .auth-glass::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            z-index: -1;
-            border-radius: 28px;
-            padding: 1px;
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.12) 0%,
-                rgba(255, 255, 255, 0.04) 30%,
-                rgba(255, 255, 255, 0.01) 50%,
-                rgba(255, 255, 255, 0.04) 70%,
-                rgba(255, 255, 255, 0.06) 100%
-            );
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
+            display: none;
         }
 
         .auth-glass::after {

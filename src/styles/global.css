@@ -14,13 +14,11 @@
     --color-glass-border: rgba(255, 255, 255, 0.05);
     --color-glass-hover: rgba(255, 255, 255, 0.06);
     --color-glass-strong: rgba(255, 255, 255, 0.07);
-    --color-amber: #fbbf24;
-    --color-rose: #f472b6;
-    --color-violet: #a78bfa;
-    --color-crimson: #c48a8a;
-    --gradient-accent: linear-gradient(135deg, #fbbf24, #f472b6, #a78bfa);
-    --gradient-accent-2: linear-gradient(135deg, #f472b6, #a78bfa, #c48a8a);
-    --gradient-warm: linear-gradient(135deg, #fbbf24 0%, #f472b6 50%, #a78bfa 100%);
+    --color-lemon: #CCFF00;
+    --color-amber: #CCFF00;
+    --gradient-accent: #CCFF00;
+    --gradient-accent-2: #CCFF00;
+    --gradient-warm: #CCFF00;
     --glass-blur: 20px;
     --glass-radius: 16px;
     --glass-border: 1px solid var(--color-glass-border);
@@ -28,7 +26,7 @@
     --font-body: 'DM Sans', 'Inter', sans-serif;
     --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
     --shadow-glass-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.08);
+    --shadow-glow: 0 0 40px rgba(204, 255, 0, 0.08);
     --section-padding: 6rem 5%;
 }
 
@@ -39,7 +37,7 @@ html {
 body {
     font-family: var(--font-body);
     background: var(--color-bg);
-    color: rgba(255, 255, 255, 0.85);
+    color: #fff;
     line-height: 1.7;
     overflow-x: hidden;
     min-height: 100vh;
@@ -105,7 +103,7 @@ button {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(251, 191, 36, 0.3);
+    box-shadow: 0 8px 30px rgba(204, 255, 0, 0.3);
 }
 
 .btn-secondary {
@@ -135,12 +133,17 @@ button {
     pointer-events: none;
 }
 
-/* ===== KEYFRAMES ===== */
-@keyframes auroraDrift {
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(5%, -5%) scale(1.05); }
-    66% { transform: translate(-3%, 3%) scale(0.95); }
-    100% { transform: translate(2%, -2%) scale(1.02); }
+/* ===== BACKGROUND ===== */
+.aurora-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: var(--color-bg);
+    background-image: url('/images/bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 @keyframes float {
