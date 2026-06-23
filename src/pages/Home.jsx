@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 
 export default function Home() {
+  const navigate = useNavigate()
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
@@ -95,7 +97,7 @@ export default function Home() {
             creators sharing their stories through the lens.
           </p>
           <div className="cta-buttons">
-            <a href="#get-started" className="btn-primary">
+            <a href="/login" className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>
               Get Started <i className="fas fa-arrow-right" />
             </a>
             <a href="#download" className="btn-secondary">

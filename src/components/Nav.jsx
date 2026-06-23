@@ -48,7 +48,6 @@ export default function Nav() {
     <>
     <nav className={scrolled ? 'scrolled' : ''}>
       <div className="logo">
-        <div className="logo-icon">F</div>
         <h1>FrameX</h1>
       </div>
       <ul>
@@ -107,19 +106,6 @@ export default function Nav() {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-        }
-
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: var(--gradient-accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #08080f;
         }
 
         .logo h1 {
@@ -267,9 +253,6 @@ export default function Nav() {
                 padding: 0.7rem 5%;
             }
             nav ul {
-                display: none;
-            }
-            .nav-right .auth-buttons {
                 display: none;
             }
             .menu-toggle {
@@ -443,8 +426,7 @@ export default function Nav() {
         }
 
         @media (max-width: 480px) {
-            .signup,
-            .get-started {
+            .signup {
                 display: none;
             }
         }
@@ -460,7 +442,7 @@ export default function Nav() {
         <a href="#community" className={activeItem === 'community' ? 'active' : ''} onClick={() => { setActiveItem('community'); closeMenu(); }}>Community</a>
         <a href="#about" className={activeItem === 'about' ? 'active' : ''} onClick={() => { setActiveItem('about'); closeMenu(); }}>About</a>
         <a href="#pricing" className={activeItem === 'pricing' ? 'active' : ''} onClick={() => { setActiveItem('pricing'); closeMenu(); }}>Pricing</a>
-        <a href="#get-started" className="drawer-cta" onClick={closeMenu}>Get Started</a>
+        <a href="/login" className="drawer-cta" onClick={closeMenu}>Get Started</a>
       </div>
     </div>
     </>

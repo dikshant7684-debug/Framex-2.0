@@ -51,6 +51,8 @@ export default function AppLayout({ children }) {
   const location = useLocation()
   const currentPage = pageTitles[location.pathname] || 'FrameX'
   const { unreadCount: notifUnread } = useNotificationStore()
+  const pathParts = location.pathname.split('/')
+  const isOtherProfile = pathParts[1] === 'profile' && pathParts[2] && pathParts[2] !== user?.id
 
   const handleLogout = async () => {
     await signOut()
@@ -60,6 +62,7 @@ export default function AppLayout({ children }) {
   return (
     <div className="app-layout">
       {/* Desktop Sidebar */}
+      {!isOtherProfile && (
       <aside className="desktop-sidebar">
         <div className="sidebar-brand" onClick={() => navigate('/home')}>
           <span className="sidebar-logo-mark">F</span>
@@ -104,16 +107,19 @@ export default function AppLayout({ children }) {
           <span className="sidebar-nav-label">Log Out</span>
         </button>
       </aside>
+      )}
 
       {/* Main content area */}
       <div className="app-main">
         {/* Mobile header */}
+        {!isOtherProfile && (
         <header className="mobile-header">
           <div className="mobile-header-left" onClick={() => navigate('/home')}>
             <span className="mobile-header-logo">F</span>
             <span className="mobile-header-title">{currentPage}</span>
           </div>
         </header>
+        )}
 
         {/* Page content with transitions */}
         <main className="app-content">
@@ -132,7 +138,9 @@ export default function AppLayout({ children }) {
       </div>
 
       {/* Mobile Bottom Navigation */}
+      {!isOtherProfile && (
       <BottomNav />
+      )}
 
       <style>{`
         .app-layout {

@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRealtimeTrends } from '../hooks/useRealtimeTrends'
 import { useFeedStore } from '../stores/feedStore'
+import { supabase } from '../lib/supabaseClient'
 
 const fallbackExplorePosts = [
   { id: '1', imageUrl: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=600', username: 'creativemind', avatarColor: '#CCFF00', likes: 234, comments: 18, isVideo: false },
@@ -116,6 +118,7 @@ const categoryIcons = {
 }
 
 export default function Explore() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('for-you')
   const [searchQuery, setSearchQuery] = useState('')
@@ -126,6 +129,75 @@ export default function Explore() {
   const searchRef = useRef(null)
   const hashtagScrollRef = useRef(null)
   const tabsScrollRef = useRef(null)
+
+  const [searchResults, setSearchResults] = useState({ users: [], hashtags: [], posts: [] })
+  const [searchLoading, setSearchLoading] = useState(false)
+  const searchTimer = useRef(null)
+
+  const performSearch = useCallback(async (query) => {
+    if (query.length < 1) {
+      setSearchResults({ users: [], hashtags: [], posts: [] })
+      return
+    }
+    setSearchLoading(true)
+    try {
+      const q = `%${query}%`
+      const [usersData, postsData] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio')
+          .or(`username.ilike.${q},display_name.ilike.${q}`)
+          .limit(5),
+        supabase
+          .from('posts')
+          .select('id, content, created_at, profiles!inner(id, username, display_name, avatar_url)')
+          .ilike('content', q)
+          .order('created_at', { ascending: false })
+          .limit(10),
+      ])
+
+      // Extract unique hashtags from matching posts
+      const hashtagSet = new Set()
+      const hashtags = []
+      if (postsData.data) {
+        const tagRegex = /#(\w+)/gi
+        for (const post of postsData.data) {
+          let match
+          while ((match = tagRegex.exec(post.content)) !== null) {
+            const tag = match[1].toLowerCase()
+            if (!hashtagSet.has(tag) && tag.includes(query.toLowerCase())) {
+              hashtagSet.add(tag)
+              hashtags.push({ tag, posts: '—' })
+            }
+          }
+        }
+      }
+
+      setSearchResults({
+        users: usersData.data || [],
+        hashtags: hashtags.slice(0, 5),
+        posts: postsData.data || [],
+      })
+    } catch (err) {
+      console.warn('Search error:', err)
+      setSearchResults({ users: [], hashtags: [], posts: [] })
+    } finally {
+      setSearchLoading(false)
+    }
+  }, [])
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    if (!searchQuery.trim()) {
+      setSearchResults({ users: [], hashtags: [], posts: [] })
+      return
+    }
+    searchTimer.current = setTimeout(() => performSearch(searchQuery.trim()), 300)
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+    }
+  }, [searchQuery, performSearch])
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1800)
@@ -221,7 +293,7 @@ export default function Explore() {
           )}
         </div>
         <AnimatePresence>
-          {searchFocused && filteredSuggestions?.length > 0 && (
+          {searchFocused && (
             <motion.div
               className="explore-suggestions"
               initial={{ opacity: 0, y: -8 }}
@@ -229,21 +301,118 @@ export default function Explore() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              {filteredSuggestions.map((s, i) => (
-                <motion.div
-                  key={`${s.type}-${s.label}`}
-                  className="explore-suggestion-item"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                >
-                  <span className="explore-suggestion-icon">{getSuggestionIcon(s.type)}</span>
-                  <div className="explore-suggestion-info">
-                    <span className="explore-suggestion-label">{s.label}</span>
-                    <span className="explore-suggestion-sub">{s.sub}</span>
-                  </div>
-                </motion.div>
-              ))}
+              {searchQuery.trim() ? (
+                // Real search results
+                searchLoading ? (
+                  <div className="explore-search-status">Searching...</div>
+                ) : (
+                  <>
+                    {/* Users Section */}
+                    <div className="explore-search-section">
+                      <div className="explore-search-section-title">Users</div>
+                      {searchResults.users.length > 0 ? (
+                        searchResults.users.map((u, i) => (
+                          <motion.div
+                            key={`user-${u.id}`}
+                            className="explore-suggestion-item"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                            onClick={() => navigate(`/profile/${u.id}`)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <span className="explore-suggestion-icon" style={{ background: u.avatar_url ? `url(${u.avatar_url}) center/cover` : 'var(--surface)', borderRadius: '50%', overflow: 'hidden' }}>
+                              {!u.avatar_url && (u.display_name?.[0] || u.username?.[0] || '?')}
+                            </span>
+                            <div className="explore-suggestion-info">
+                              <span className="explore-suggestion-label">{u.display_name || u.username}</span>
+                              <span className="explore-suggestion-sub">@{u.username}</span>
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="explore-search-empty">No users found</div>
+                      )}
+                    </div>
+
+                    {/* Hashtags Section */}
+                    <div className="explore-search-section">
+                      <div className="explore-search-section-title">Hashtags</div>
+                      {searchResults.hashtags.length > 0 ? (
+                        searchResults.hashtags.map((h, i) => (
+                          <motion.div
+                            key={`tag-${h.tag}`}
+                            className="explore-suggestion-item"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                          >
+                            <span className="explore-suggestion-icon">#️⃣</span>
+                            <div className="explore-suggestion-info">
+                              <span className="explore-suggestion-label">#{h.tag}</span>
+                              <span className="explore-suggestion-sub">{h.posts} posts</span>
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="explore-search-empty">No hashtags found</div>
+                      )}
+                    </div>
+
+                    {/* Posts Section */}
+                    <div className="explore-search-section">
+                      <div className="explore-search-section-title">Posts</div>
+                      {searchResults.posts.length > 0 ? (
+                        searchResults.posts.map((p, i) => (
+                          <motion.div
+                            key={`post-${p.id}`}
+                            className="explore-suggestion-item"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                          >
+                            <span className="explore-suggestion-icon">📄</span>
+                            <div className="explore-suggestion-info">
+                              <span className="explore-suggestion-label">
+                                {p.content.length > 60 ? p.content.slice(0, 60) + '...' : p.content}
+                              </span>
+                              <span className="explore-suggestion-sub">
+                                by @{p.profiles?.username || p.profiles?.display_name || 'user'}
+                              </span>
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="explore-search-empty">No posts found</div>
+                      )}
+                    </div>
+
+                    {/* Overall empty state */}
+                    {!searchLoading && searchResults.users.length === 0 && searchResults.hashtags.length === 0 && searchResults.posts.length === 0 && (
+                      <div className="explore-search-empty explore-search-empty-all">
+                        No results found for "{searchQuery}"
+                      </div>
+                    )}
+                  </>
+                )
+              ) : (
+                // Default suggestions when not searching
+                filteredSuggestions.map((s, i) => (
+                  <motion.div
+                    key={`${s.type}-${s.label}`}
+                    className="explore-suggestion-item"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                  >
+                    <span className="explore-suggestion-icon">{getSuggestionIcon(s.type)}</span>
+                    <div className="explore-suggestion-info">
+                      <span className="explore-suggestion-label">{s.label}</span>
+                      <span className="explore-suggestion-sub">{s.sub}</span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -549,6 +718,45 @@ export default function Explore() {
         .explore-suggestion-sub {
           font-size: 0.75rem;
           color: var(--text-secondary);
+        }
+
+        /* ────────── Search Results ────────── */
+        .explore-search-status {
+          text-align: center;
+          padding: 0.75rem;
+          color: var(--text-secondary);
+          font-size: 0.85rem;
+        }
+        .explore-search-section {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+          padding: 0.75rem 0;
+          border-top: 1px solid var(--border);
+        }
+        .explore-search-section:first-of-type {
+          border-top: none;
+          padding-top: 0;
+        }
+        .explore-search-section-title {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0 0.25rem 0.25rem;
+        }
+        .explore-search-empty {
+          text-align: center;
+          padding: 0.75rem 0;
+          color: var(--text-secondary);
+          font-size: 0.85rem;
+        }
+        .explore-search-empty-all {
+          text-align: center;
+          padding: 1.5rem 1rem;
+          color: var(--text-secondary);
+          font-size: 1rem;
         }
 
         /* ────────── Hashtags ────────── */

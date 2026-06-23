@@ -2,10 +2,10 @@ import { create } from 'zustand'
 import { supabase } from '../lib/supabaseClient'
 
 export const usePostStore = create(() => ({
-  createPost: async ({ content, image_url, video_url, type = 'text' }) => {
+  createPost: async ({ content, image_url, video_url, type = 'text', audience = 'public', media = [] }) => {
     const { data, error } = await supabase
       .from('posts')
-      .insert({ content, image_url, video_url, type })
+      .insert({ content, image_url, video_url, type, audience, media })
       .select(`
         *,
         profiles:user_id (id, username, display_name, avatar_url, is_verified)
@@ -14,6 +14,38 @@ export const usePostStore = create(() => ({
 
     if (error) throw error
     return data
+  },
+
+  uploadPostImage: async (file, userId, onProgress) => {
+    const ext = file.name.split('.').pop()
+    const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const filePath = `post-images/${fileName}`
+
+    const { data, error } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      })
+
+    if (error) throw error
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(data.path)
+
+    return {
+      url: publicUrl,
+      path: data.path,
+    }
+  },
+
+  deletePostImage: async (path) => {
+    const { error } = await supabase.storage
+      .from('post-images')
+      .remove([path])
+
+    if (error) throw error
   },
 
   deletePost: async (postId) => {

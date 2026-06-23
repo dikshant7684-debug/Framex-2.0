@@ -10,6 +10,7 @@ import Explore from './pages/Explore'
 import Notifications from './pages/Notifications'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
+import PostCreation from './pages/PostCreation'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ThemeProvider } from './context/ThemeContext'
 import { useAuthStore } from './stores/authStore'
@@ -58,11 +59,13 @@ export default function App() {
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/home" element={<ProtectedRoute><AppLayout><HomeFeed /></AppLayout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
+          <Route path="/profile/:id" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
           <Route path="/communities" element={<ProtectedRoute><AppLayout><Communities /></AppLayout></ProtectedRoute>} />
           <Route path="/explore" element={<ProtectedRoute><AppLayout><Explore /></AppLayout></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><AppLayout><Notifications /></AppLayout></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><AppLayout><Settings /></AppLayout></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><AppLayout><Analytics /></AppLayout></ProtectedRoute>} />
+          <Route path="/create" element={<ProtectedRoute><AppLayout><PostCreation /></AppLayout></ProtectedRoute>} />
         </Routes>
       </ThemeProvider>
     </ErrorBoundary>

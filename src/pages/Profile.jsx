@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import FeedPost from '../components/FeedPost'
 import { useRealtimeProfile } from '../hooks/useRealtimeProfile'
 import { useAuthStore } from '../stores/authStore'
@@ -31,16 +31,17 @@ function formatCount(n) {
 }
 
 export default function Profile() {
+  const { id } = useParams()
   const [viewMode, setViewMode] = useState('grid')
   const [activeTab, setActiveTab] = useState('posts')
-  const { liveFollowerCount, isOnline } = useRealtimeProfile('u2')
-  const profile = currentUserFallback
-  const userPosts = feedPostsFallback.filter(p => p.userId === 'u2')
+  const { liveFollowerCount, isOnline } = useRealtimeProfile(id || 'u2')
   const navigate = useNavigate()
   const [showEditModal, setShowEditModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
+  const [viewUser, setViewUser] = useState(null)
+  const [viewUserLoading, setViewUserLoading] = useState(false)
   const [editForm, setEditForm] = useState({
     avatar_url: '',
     cover_url: '',
@@ -51,12 +52,55 @@ export default function Profile() {
   })
   const fileInputRef = useRef(null)
   const coverInputRef = useRef(null)
+
   const authProfile = useAuthStore(s => s.profile)
+  const authUser = useAuthStore(s => s.user)
   const updateProfile = useAuthStore(s => s.updateProfile)
+  const isOwnProfile = !id || id === authUser?.id
+
+  const profile = useMemo(() => {
+    if (isOwnProfile) return currentUserFallback
+    if (!viewUser) return currentUserFallback
+    return {
+      username: viewUser.display_name || viewUser.username || 'Unknown',
+      handle: `@${viewUser.username || 'unknown'}`,
+      avatarColor: '#CCFF00',
+      bio: viewUser.bio || '',
+      website: viewUser.website || '',
+      posts: viewUser.posts_count || '0',
+      followers: viewUser.followers_count || 0,
+      following: viewUser.following_count || 0,
+    }
+  }, [isOwnProfile, viewUser])
+
+  const userPosts = feedPostsFallback.filter(p => p.userId === 'u2')
+
+  useEffect(() => {
+    if (isOwnProfile) return
+    setViewUserLoading(true)
+    supabase.from('profiles').select('*').eq('id', id).single()
+      .then(({ data, error }) => {
+        if (error) throw error
+        setViewUser(data)
+      })
+      .catch(err => console.warn('Failed to load user profile:', err.message))
+      .finally(() => setViewUserLoading(false))
+  }, [id, isOwnProfile])
 
   const showToast = (type, message) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  const ensureBucket = async (bucket) => {
+    const { data: buckets } = await supabase.storage.listBuckets()
+    if (buckets?.some(b => b.name === bucket)) return true
+    const { error } = await supabase.storage.createBucket(bucket, { public: true })
+    if (error) {
+      console.warn(`Could not auto-create bucket "${bucket}":`, error.message)
+      return false
+    }
+    return true
   }
 
   const uploadImage = async (file, bucket) => {
@@ -65,8 +109,21 @@ export default function Profile() {
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
+
       const { error } = await supabase.storage.from(bucket).upload(fileName, file)
-      if (error) throw error
+      if (error?.message?.includes('bucket') || error?.message?.includes('Bucket')) {
+        const created = await ensureBucket(bucket)
+        if (!created) {
+          showToast('error', `Storage bucket "${bucket}" not found. Create it in Supabase dashboard or run the migration SQL.`)
+          return null
+        }
+        // Retry upload after creating bucket
+        const { error: retryErr } = await supabase.storage.from(bucket).upload(fileName, file)
+        if (retryErr) throw retryErr
+      } else if (error) {
+        throw error
+      }
+
       const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName)
       return publicUrl
     } catch (err) {
@@ -114,6 +171,13 @@ export default function Profile() {
       <div className="profile-header">
         <div className="profile-cover">
           <div className="profile-cover-bg" />
+          {!isOwnProfile && (
+            <button className="profile-back-btn" onClick={() => navigate(-1)} aria-label="Go back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
         </div>
 
         <div className="profile-info">
@@ -123,7 +187,7 @@ export default function Profile() {
               <span className={`profile-status-badge ${isOnline ? 'online' : 'offline'}`} />
             </div>
             <div className="profile-actions">
-              <motion.button
+              {isOwnProfile && <><motion.button
                 className="profile-settings-btn"
                 onClick={() => navigate('/settings')}
                 aria-label="Settings"
@@ -156,6 +220,7 @@ export default function Profile() {
               >
                 Edit Profile
               </motion.button>
+              </>}
             </div>
           </div>
 
@@ -188,7 +253,8 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — only show for own profile */}
+      {isOwnProfile && (
       <div className="profile-tabs">
         {tabs.map(tab => (
           <button
@@ -217,8 +283,10 @@ export default function Profile() {
           </button>
         </div>
       </div>
+      )}
 
-      {/* Content */}
+      {/* Content — only show for own profile */}
+      {isOwnProfile && (
       <AnimatePresence mode="wait">
         {activeTab === 'posts' && (
           <motion.div
@@ -297,6 +365,7 @@ export default function Profile() {
           </motion.div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Edit Profile Modal */}
       <AnimatePresence>
@@ -456,6 +525,36 @@ const profileStyles = `
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, rgba(204,255,0,0.15), rgba(0,229,255,0.1), rgba(204,255,0,0.05));
+  }
+  .profile-back-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 8, 15, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.25s ease;
+    font-family: inherit;
+  }
+  .profile-back-btn:hover {
+    background: rgba(8, 8, 15, 0.7);
+    color: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  .profile-back-btn:active {
+    transform: scale(0.92);
   }
 
   .profile-info {

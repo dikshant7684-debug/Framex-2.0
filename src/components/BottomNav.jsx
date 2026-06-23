@@ -99,7 +99,7 @@ export default function BottomNav() {
               )
             })}
           </div>
-          <button className="create-btn" onClick={() => navigate('/home')} aria-label="Create post">
+          <button className="create-btn" onClick={() => navigate('/create')} aria-label="Create post">
             {icons.plus()}
           </button>
           <style>{bottomNavStyles}</style>

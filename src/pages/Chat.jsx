@@ -1999,11 +1999,19 @@ export default function Chat() {
     }
 
     try {
-      await supabase.from('messages').insert({
-        channel_id: activeChannel.id,
-        user_id: user.id,
-        content,
-      })
+      const { data } = await supabase
+        .from('messages')
+        .insert({
+          channel_id: activeChannel.id,
+          user_id: user.id,
+          content,
+        })
+        .select('*, profiles(*)')
+        .single()
+
+      if (data) {
+        setMessages(prev => [...prev, data])
+      }
     } catch (e) {
       console.warn('Failed to send message')
     }
