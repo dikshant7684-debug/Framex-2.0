@@ -4,25 +4,18 @@ import { useNavigate, useParams } from 'react-router-dom'
 import FeedPost from '../components/FeedPost'
 import { useRealtimeProfile } from '../hooks/useRealtimeProfile'
 import { useAuthStore } from '../stores/authStore'
+import { useProfileStore } from '../stores/profileStore'
 import { supabase } from '../lib/supabaseClient'
 
-const currentUserFallback = {
-  username: 'ZenX',
-  handle: '@zenx',
-  avatarColor: '#CCFF00',
-  bio: 'Building the future of social • Creator • Designer • Code artist',
-  website: 'zenx.design',
-  posts: '42',
-  followers: 12800,
-  following: 382,
+const AVATAR_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
+const getAvatarColor = (name) => {
+  if (typeof name !== 'string') return AVATAR_COLORS[0]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
-const feedPostsFallback = [
-  { id: 'p1', userId: 'u2', images: ['https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=600'], content: 'exploring new design frontiers with framex', likes: 234 },
-  { id: 'p2', userId: 'u2', images: [], content: 'just shipped a massive update to the grid system — responsiveness is next level', likes: 189 },
-  { id: 'p3', userId: 'u2', images: ['https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=600'], content: 'neon vibes only tonight', likes: 312 },
-  { id: 'p4', userId: 'u2', images: [], content: 'thinking about the future of real-time collaborative design tools', likes: 156 },
-  { id: 'p5', userId: 'u2', images: ['https://images.unsplash.com/photo-1550684376-efcbd6e3f031?w=600'], content: 'new visual identity dropping soon', likes: 278 },
-]
 
 function formatCount(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
@@ -34,7 +27,6 @@ export default function Profile() {
   const { id } = useParams()
   const [viewMode, setViewMode] = useState('grid')
   const [activeTab, setActiveTab] = useState('posts')
-  const { liveFollowerCount, isOnline } = useRealtimeProfile(id || 'u2')
   const navigate = useNavigate()
   const [showEditModal, setShowEditModal] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -42,6 +34,9 @@ export default function Profile() {
   const [toast, setToast] = useState(null)
   const [viewUser, setViewUser] = useState(null)
   const [viewUserLoading, setViewUserLoading] = useState(false)
+  const [userPosts, setUserPosts] = useState([])
+  const [postsLoading, setPostsLoading] = useState(false)
+  const [userStats, setUserStats] = useState({ posts: 0, followers: 0, following: 0 })
   const [editForm, setEditForm] = useState({
     avatar_url: '',
     cover_url: '',
@@ -57,26 +52,48 @@ export default function Profile() {
   const authUser = useAuthStore(s => s.user)
   const updateProfile = useAuthStore(s => s.updateProfile)
   const isOwnProfile = !id || id === authUser?.id
+  const targetUserId = id || authUser?.id
+  const { liveFollowerCount, isOnline } = useRealtimeProfile(targetUserId)
+  const followUser = useProfileStore(s => s.followUser)
+  const unfollowUser = useProfileStore(s => s.unfollowUser)
+  const fetchFollowers = useProfileStore(s => s.fetchFollowers)
+  const followersByUserId = useProfileStore(s => s.followersByUserId)
 
   const profile = useMemo(() => {
-    if (isOwnProfile) return currentUserFallback
-    if (!viewUser) return currentUserFallback
-    return {
-      username: viewUser.display_name || viewUser.username || 'Unknown',
-      handle: `@${viewUser.username || 'unknown'}`,
-      avatarColor: '#CCFF00',
-      bio: viewUser.bio || '',
-      website: viewUser.website || '',
-      posts: viewUser.posts_count || '0',
-      followers: viewUser.followers_count || 0,
-      following: viewUser.following_count || 0,
+    const src = isOwnProfile ? authProfile : viewUser
+    if (!src) {
+      return {
+        username: 'Loading...',
+        handle: '@...',
+        avatarUrl: null,
+        bio: '',
+        website: '',
+        posts: '0',
+        followers: 0,
+        following: 0,
+      }
     }
-  }, [isOwnProfile, viewUser])
+    return {
+      username: src.display_name || src.username || 'Unknown',
+      handle: `@${src.username || 'unknown'}`,
+      avatarUrl: src.avatar_url || null,
+      bio: src.bio || '',
+      website: src.website || '',
+      posts: userStats.posts,
+      followers: liveFollowerCount ?? userStats.followers,
+      following: userStats.following,
+    }
+  }, [isOwnProfile, viewUser, authProfile, userStats, liveFollowerCount])
 
-  const userPosts = feedPostsFallback.filter(p => p.userId === 'u2')
+  const isFollowing = useMemo(() => {
+    if (isOwnProfile || !targetUserId) return false
+    const followers = followersByUserId[targetUserId] || []
+    return followers.some(f => f.follower_id === authUser?.id)
+  }, [isOwnProfile, targetUserId, followersByUserId, authUser])
 
+  // Fetch viewed user profile
   useEffect(() => {
-    if (isOwnProfile) return
+    if (isOwnProfile || !id) return
     setViewUserLoading(true)
     supabase.from('profiles').select('*').eq('id', id).single()
       .then(({ data, error }) => {
@@ -86,6 +103,50 @@ export default function Profile() {
       .catch(err => console.warn('Failed to load user profile:', err.message))
       .finally(() => setViewUserLoading(false))
   }, [id, isOwnProfile])
+
+  // Fetch user posts
+  useEffect(() => {
+    if (!targetUserId) return
+    setPostsLoading(true)
+    supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', targetUserId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error && data) setUserPosts(data)
+      })
+      .finally(() => setPostsLoading(false))
+  }, [targetUserId])
+
+  // Fetch user stats (post count, following count)
+  useEffect(() => {
+    if (!targetUserId) return
+    const fetchStats = async () => {
+      try {
+        const [postsRes, followingRes, followersRes] = await Promise.all([
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', targetUserId).eq('is_deleted', false),
+          supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', targetUserId),
+          supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', targetUserId),
+        ])
+        setUserStats({
+          posts: postsRes.count ?? 0,
+          following: followingRes.count ?? 0,
+          followers: followersRes.count ?? 0,
+        })
+      } catch (err) {
+        console.warn('Failed to fetch user stats:', err)
+      }
+    }
+    fetchStats()
+  }, [targetUserId])
+
+  // Fetch followers for follow/unfollow check
+  useEffect(() => {
+    if (!targetUserId || isOwnProfile) return
+    fetchFollowers(targetUserId)
+  }, [targetUserId, isOwnProfile, fetchFollowers])
 
   const showToast = (type, message) => {
     setToast({ type, message })
@@ -182,8 +243,12 @@ export default function Profile() {
 
         <div className="profile-info">
           <div className="profile-avatar-section">
-            <div className="profile-avatar" style={{ background: profile.avatarColor, position: 'relative' }}>
-              <span>{profile.username.charAt(0).toUpperCase()}</span>
+            <div className="profile-avatar" style={{ background: getAvatarColor(profile.username), position: 'relative' }}>
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.username} className="profile-avatar-img" />
+              ) : (
+                <span>{profile.username.charAt(0).toUpperCase()}</span>
+              )}
               <span className={`profile-status-badge ${isOnline ? 'online' : 'offline'}`} />
             </div>
             <div className="profile-actions">
@@ -221,6 +286,17 @@ export default function Profile() {
                 Edit Profile
               </motion.button>
               </>}
+              {!isOwnProfile && (
+                <motion.button
+                  className={`profile-follow-btn${isFollowing ? ' following' : ''}`}
+                  onClick={() => isFollowing ? unfollowUser(targetUserId) : followUser(targetUserId)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                >
+                  {isFollowing ? 'Following' : 'Follow'}
+                </motion.button>
+              )}
             </div>
           </div>
 
@@ -228,7 +304,7 @@ export default function Profile() {
             <h1 className="profile-name">{profile.username}</h1>
             <span className="profile-handle">{profile.handle}</span>
             <p className="profile-bio">{profile.bio}</p>
-            <a className="profile-website" href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer">
+            <a className="profile-website" href={profile.website ? (profile.website.startsWith('http') ? profile.website : `https://${profile.website}`) : '#'} target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
                 <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
               </svg>
@@ -253,8 +329,7 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Tabs — only show for own profile */}
-      {isOwnProfile && (
+      {/* Tabs */}
       <div className="profile-tabs">
         {tabs.map(tab => (
           <button
@@ -283,10 +358,7 @@ export default function Profile() {
           </button>
         </div>
       </div>
-      )}
 
-      {/* Content — only show for own profile */}
-      {isOwnProfile && (
       <AnimatePresence mode="wait">
         {activeTab === 'posts' && (
           <motion.div
@@ -306,15 +378,15 @@ export default function Profile() {
                     whileHover={{ scale: 1.02 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
-                    {post.images[0] ? (
-                      <img src={post.images[0]} alt="" loading="lazy" />
+                    {post.image_url ? (
+                      <img src={post.image_url} alt="" loading="lazy" />
                     ) : (
                       <div className="grid-item-text">
                         <p>{post.content.substring(0, 60)}...</p>
                       </div>
                     )}
                     <div className="grid-item-overlay">
-                      <span>{post.likes} ❤</span>
+                      <span>{(post.likes_count || post.likes || 0)} ❤</span>
                     </div>
                   </motion.div>
                 )) : (
@@ -365,7 +437,6 @@ export default function Profile() {
           </motion.div>
         )}
       </AnimatePresence>
-      )}
 
       {/* Edit Profile Modal */}
       <AnimatePresence>
@@ -582,6 +653,14 @@ const profileStyles = `
     border: 4px solid var(--bg);
     flex-shrink: 0;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+    overflow: hidden;
+  }
+  .profile-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
   }
   .profile-edit-btn {
     padding: 0.45rem 1.2rem;
@@ -599,6 +678,27 @@ const profileStyles = `
     border-color: color-mix(in srgb, var(--accent) 40%, transparent);
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+
+  .profile-follow-btn {
+    padding: 0.45rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .profile-follow-btn:hover {
+    opacity: 0.85;
+  }
+  .profile-follow-btn.following {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
   }
 
   .profile-settings-btn {

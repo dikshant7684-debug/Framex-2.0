@@ -30,11 +30,15 @@ const avatarColors = ['#CCFF00', '#FF6B6B', '#4ECDC4', '#A78BFA', '#FFD93D', '#6
 function mapPost(post) {
   const profile = post.profiles || {}
   const name = profile.display_name || profile.username || 'user'
+  const idStr = typeof post.id === 'string' ? post.id : String(post.id ?? '')
+  if (typeof post.id !== 'string' && post.id != null) {
+    console.warn('mapPost: post.id is not a string', { type: typeof post.id, value: post.id, post })
+  }
   return {
     id: post.id,
     username: name,
     handle: '@' + (profile.username || 'user'),
-    avatarColor: avatarColors[((post.id || '').charCodeAt(0) || 0) % avatarColors.length],
+    avatarColor: avatarColors[(idStr.charCodeAt(0) || 0) % avatarColors.length],
     timestamp: post.created_at ? new Date(post.created_at).getTime() : Date.now(),
     content: post.content || '',
     images: post.image_url ? [post.image_url] : [],

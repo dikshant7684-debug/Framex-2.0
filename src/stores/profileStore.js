@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabaseClient'
+import { useAuthStore } from './authStore'
 
 export const useProfileStore = create((set, get) => ({
   profilesByUserId: {},
@@ -59,9 +60,12 @@ export const useProfileStore = create((set, get) => ({
   },
 
   followUser: async (userId) => {
+    const authUser = useAuthStore.getState().user
+    if (!authUser) throw new Error('Not authenticated')
+
     const { error } = await supabase
       .from('follows')
-      .insert({ following_id: userId })
+      .insert({ follower_id: authUser.id, following_id: userId })
 
     if (error) throw error
 
@@ -70,16 +74,20 @@ export const useProfileStore = create((set, get) => ({
       return {
         followersByUserId: {
           ...state.followersByUserId,
-          [userId]: [...existing, { follower_id: 'self' }],
+          [userId]: [...existing, { follower_id: authUser.id }],
         },
       }
     })
   },
 
   unfollowUser: async (userId) => {
+    const authUser = useAuthStore.getState().user
+    if (!authUser) throw new Error('Not authenticated')
+
     const { error } = await supabase
       .from('follows')
       .delete()
+      .eq('follower_id', authUser.id)
       .eq('following_id', userId)
 
     if (error) throw error
@@ -89,16 +97,18 @@ export const useProfileStore = create((set, get) => ({
       return {
         followersByUserId: {
           ...state.followersByUserId,
-          [userId]: existing.filter(f => f.follower_id !== 'self'),
+          [userId]: existing.filter(f => f.follower_id !== authUser.id),
         },
       }
     })
   },
 
   isFollowing: (userId) => {
+    const authUser = useAuthStore.getState().user
+    if (!authUser) return false
     const { followersByUserId } = get()
     const followers = followersByUserId[userId] || []
-    return followers.some(f => f.follower_id === 'self')
+    return followers.some(f => f.follower_id === authUser.id)
   },
 
   updateProfile: async (updates) => {

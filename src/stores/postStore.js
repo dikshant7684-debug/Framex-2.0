@@ -1,18 +1,33 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabaseClient'
+import { useFeedStore } from './feedStore'
 
 export const usePostStore = create(() => ({
   createPost: async ({ content, image_url, video_url, type = 'text', audience = 'public', media = [] }) => {
+    // Get the authenticated user for RLS compliance
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) throw new Error('Authentication required')
+
     const { data, error } = await supabase
       .from('posts')
-      .insert({ content, image_url, video_url, type, audience, media })
-      .select(`
-        *,
-        profiles:user_id (id, username, display_name, avatar_url, is_verified)
-      `)
+      .insert({ content, image_url, video_url, type, audience, media, user_id: user.id })
+      .select()
       .single()
 
     if (error) throw error
+
+    // Attach profile data (separate query avoids FK relationship dependency)
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, is_verified')
+        .eq('id', data.user_id)
+        .single()
+      data.profiles = profile || null
+    } catch {
+      data.profiles = null
+    }
+
     return data
   },
 
@@ -55,6 +70,9 @@ export const usePostStore = create(() => ({
       .eq('id', postId)
 
     if (error) throw error
+
+    // Remove from feed store optimistically
+    useFeedStore.getState().removePostOptimistic(postId)
   },
 
   likePost: async (postId) => {
@@ -63,6 +81,16 @@ export const usePostStore = create(() => ({
       .insert({ post_id: postId })
 
     if (error) throw error
+
+    // Optimistically update like count in feed store
+    const feedState = useFeedStore.getState()
+    const post = feedState.posts.find(p => p.id === postId)
+    if (post) {
+      feedState.updatePostInFeed(postId, {
+        likes: (post.likes || 0) + 1,
+        isLiked: true,
+      })
+    }
   },
 
   unlikePost: async (postId) => {
@@ -72,6 +100,16 @@ export const usePostStore = create(() => ({
       .eq('post_id', postId)
 
     if (error) throw error
+
+    // Optimistically update like count in feed store
+    const feedState = useFeedStore.getState()
+    const post = feedState.posts.find(p => p.id === postId)
+    if (post) {
+      feedState.updatePostInFeed(postId, {
+        likes: Math.max(0, (post.likes || 0) - 1),
+        isLiked: false,
+      })
+    }
   },
 
   addComment: async ({ postId, content, parentId = null }) => {
@@ -81,13 +119,32 @@ export const usePostStore = create(() => ({
     const { data, error } = await supabase
       .from('comments')
       .insert(insertData)
-      .select(`
-        *,
-        profiles:user_id (id, username, display_name, avatar_url, is_verified)
-      `)
+      .select()
       .single()
 
     if (error) throw error
+
+    // Attach profile data (separate query avoids FK relationship dependency)
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, is_verified')
+        .eq('id', data.user_id)
+        .single()
+      data.profiles = profile || null
+    } catch {
+      data.profiles = null
+    }
+
+    // Optimistically update comment count in feed store
+    const feedState = useFeedStore.getState()
+    const post = feedState.posts.find(p => p.id === postId)
+    if (post) {
+      feedState.updatePostInFeed(postId, {
+        comments: (post.comments || 0) + 1,
+      })
+    }
+
     return data
   },
 

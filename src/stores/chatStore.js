@@ -17,8 +17,7 @@ export const useChatStore = create((set, get) => ({
         .select(`
           *,
           participants:conversation_participants (
-            user_id,
-            profiles:user_id (id, username, display_name, avatar_url, is_verified)
+            user_id
           ),
           last_message:messages (
             id, content, sender_id, created_at
@@ -29,8 +28,23 @@ export const useChatStore = create((set, get) => ({
 
       if (error) throw error
 
+      // Batch fetch profiles for all participants
+      const userIds = [...new Set((data || []).flatMap(c => c.participants?.map(p => p.user_id) || []).filter(Boolean))]
+      let profileMap = {}
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, is_verified')
+          .in('id', userIds)
+        profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]))
+      }
+
       const conversations = (data || []).map(conv => ({
         ...conv,
+        participants: (conv.participants || []).map(p => ({
+          ...p,
+          profiles: profileMap[p.user_id] || null,
+        })),
         lastMessage: conv.last_message?.[0] || null,
       }))
 
@@ -46,18 +60,31 @@ export const useChatStore = create((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:profiles!sender_id (id, username, display_name, avatar_url)
-        `)
+        .select(`*`)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
         .limit(50)
 
       if (error) throw error
 
+      // Batch fetch sender profiles
+      const senderIds = [...new Set((data || []).map(m => m.sender_id).filter(Boolean))]
+      let profileMap = {}
+      if (senderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', senderIds)
+        profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]))
+      }
+
+      const messages = (data || []).map(m => ({
+        ...m,
+        sender: profileMap[m.sender_id] || null,
+      }))
+
       set(state => ({
-        messagesByConv: { ...state.messagesByConv, [conversationId]: data || [] },
+        messagesByConv: { ...state.messagesByConv, [conversationId]: messages },
         isLoadingMessages: false,
       }))
     } catch (error) {
@@ -85,13 +112,22 @@ export const useChatStore = create((set, get) => ({
           content,
           message_type: messageType,
         })
-        .select(`
-          *,
-          sender:profiles!sender_id (id, username, display_name, avatar_url)
-        `)
+        .select(`*`)
         .single()
 
       if (error) throw error
+
+      // Attach sender profile
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .eq('id', data.sender_id)
+          .single()
+        data.sender = profile || null
+      } catch {
+        data.sender = null
+      }
 
       set(state => {
         const existing = state.messagesByConv[conversationId] || []

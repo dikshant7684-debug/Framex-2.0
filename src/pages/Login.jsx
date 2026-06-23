@@ -42,7 +42,12 @@ export default function Login() {
 
   const handleSocialLogin = async (provider) => {
     try {
-      await supabase.auth.signInWithOAuth({ provider })
+      await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
     } catch (err) {
       setError(err.message)
     }

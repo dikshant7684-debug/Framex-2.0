@@ -7,38 +7,76 @@ export const useAuthStore = create((set, get) => ({
   profile: null,
   isLoading: true,
   error: null,
+  _authListener: null,
 
   initialize: async () => {
     try {
+      const { _authListener } = get()
+      if (_authListener) {
+        _authListener()
+        set({ _authListener: null })
+      }
+
       const { data: { session }, error } = await supabase.auth.getSession()
       if (error) throw error
 
       if (session) {
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single()
 
-        set({ user: session.user, session, profile: profile || null, isLoading: false })
+        // Auto-create profile if missing (e.g., users who signed up before DB trigger existed)
+        if (!profile) {
+          const username = session.user.email?.split('@')[0] || 'user'
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              username,
+              display_name: username,
+            })
+            .select()
+            .single()
+          profile = newProfile
+        }
+
+        set({ user: session.user, session, profile, isLoading: false })
       } else {
         set({ user: null, session: null, profile: null, isLoading: false })
       }
 
       // Listen for auth state changes
-      supabase.auth.onAuthStateChange(async (event, session) => {
+      const unsubscribe = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
-          const { data: profile } = await supabase
+          let { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single()
 
-          set({ user: session.user, session, profile: profile || null })
+          // Auto-create profile if missing
+          if (!profile) {
+            const username = session.user.email?.split('@')[0] || 'user'
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                username,
+                display_name: username,
+              })
+              .select()
+              .single()
+            profile = newProfile
+          }
+
+          set({ user: session.user, session, profile })
         } else {
           set({ user: null, session: null, profile: null })
         }
       })
+      set({ _authListener: unsubscribe })
     } catch (error) {
       set({ isLoading: false, error: error.message })
     }
@@ -51,8 +89,29 @@ export const useAuthStore = create((set, get) => ({
   },
 
   signUp: async (email, password, userData = {}) => {
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: userData } })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: userData,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
     if (error) throw error
+
+    // Auto-create profile record in the database
+    if (data?.user) {
+      const username = userData.username || email.split('@')[0]
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          username,
+          display_name: username,
+        })
+      if (profileError) console.warn('Failed to create profile:', profileError.message)
+    }
+
     return data
   },
 

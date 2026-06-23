@@ -1,47 +1,101 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-const fallbackTrendData = [
-  { tag: 'framex', posts: '2.4K' }, { tag: 'design', posts: '1.8K' },
-  { tag: 'coding', posts: '1.2K' }, { tag: 'uiux', posts: '892' },
-  { tag: 'react', posts: '756' }, { tag: 'photography', posts: '654' },
-  { tag: 'art', posts: '543' }, { tag: 'music', posts: '432' },
-]
-
-const fallbackCreators = [
-  { handle: '@creativemind', name: 'Creative Mind', avatarColor: '#CCFF00', followers: '12.4K' },
-  { handle: '@designpro', name: 'Design Pro', avatarColor: '#FF6B6B', followers: '8.7K' },
-  { handle: '@codemaster', name: 'Code Master', avatarColor: '#4ECDC4', followers: '6.2K' },
-  { handle: '@artistico', name: 'Artistico', avatarColor: '#A78BFA', followers: '5.1K' },
-]
-
-const avatarColors = ['#CCFF00', '#FF6B6B', '#4ECDC4', '#A78BFA', '#FFD93D', '#6BCB77']
+function formatCount(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
+  return String(n)
+}
 
 export function useRealtimeTrends() {
-  const [trendData] = useState(fallbackTrendData)
-  const [trendingCreators, setTrendingCreators] = useState(fallbackCreators)
+  const [trendData, setTrendData] = useState([])
+  const [trendingCreators, setTrendingCreators] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fetchTrends = async () => {
+      try {
+        const { data: posts } = await supabase
+          .from('posts')
+          .select('content, created_at')
+          .not('content', 'is', null)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .limit(200)
+
+        const tagCounts = {}
+        const tagRegex = /#(\w+)/gi
+        if (posts) {
+          for (const post of posts) {
+            let match
+            while ((match = tagRegex.exec(post.content)) !== null) {
+              const tag = match[1].toLowerCase()
+              tagCounts[tag] = (tagCounts[tag] || 0) + 1
+            }
+          }
+        }
+
+        const sortedTags = Object.entries(tagCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([tag, count]) => ({
+            tag,
+            posts: formatCount(count),
+          }))
+
+        setTrendData(sortedTags)
+      } catch (err) {
+        console.warn('Failed to fetch trends:', err)
+      }
+    }
+
     const fetchCreators = async () => {
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('username, display_name')
-          .limit(4)
-        if (data && data.length > 0) {
-          setTrendingCreators(
-            data.map((c, i) => ({
-              handle: `@${c.username || c.display_name}`,
-              name: c.display_name || c.username,
-              avatarColor: avatarColors[i % avatarColors.length],
-              followers: `${Math.floor(Math.random() * 10 + 1)}.${Math.floor(Math.random() * 9)}K`,
-            }))
-          )
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+
+        if (follows && follows.length > 0) {
+          const counts = {}
+          follows.forEach(f => {
+            counts[f.following_id] = (counts[f.following_id] || 0) + 1
+          })
+
+          const topIds = Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 4)
+            .map(([id]) => id)
+
+          if (topIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url')
+              .in('id', topIds)
+
+            if (profiles) {
+              const profileMap = {}
+              profiles.forEach(p => { profileMap[p.id] = p })
+
+              const creators = topIds.map((id, i) => {
+                const profile = profileMap[id] || {}
+                return {
+                  handle: `@${profile.username || 'user'}`,
+                  name: profile.display_name || profile.username || 'User',
+                  avatarUrl: profile.avatar_url || null,
+                  followers: formatCount(counts[id]),
+                }
+              })
+              setTrendingCreators(creators)
+            }
+          }
         }
-      } catch { /* keep fallback */ }
+      } catch (err) {
+        console.warn('Failed to fetch creators:', err)
+      }
     }
-    fetchCreators()
+
+    Promise.all([fetchTrends(), fetchCreators()]).finally(() => setLoading(false))
   }, [])
 
-  return { trendData, trendingCreators }
+  return { trendData, trendingCreators, loading }
 }

@@ -192,15 +192,25 @@ export default function PostCreation() {
       return
     }
 
+    // Verify session is still valid before proceeding
+    const currentUser = useAuthStore.getState().user
+    if (!currentUser) {
+      addToast('Your session has expired. Please log in again.', 'error')
+      navigate('/login', { replace: true })
+      return
+    }
+
     setIsSubmitting(true)
     setUploading(true)
     submitStartTime.current = Date.now()
+
+    let optimisticId
 
     try {
       const media = await uploadAllImages()
       setUploading(false)
 
-      const optimisticId = `opt_${Date.now()}`
+      optimisticId = `opt_${Date.now()}`
       const optimisticPost = {
         id: optimisticId,
         user_id: useAuthStore.getState().user?.id,
@@ -234,7 +244,7 @@ export default function PostCreation() {
 
       removePostOptimistic(optimisticId)
       addPostOptimistic({ ...result })
-
+      addToast('Post uploaded successfully', 'success')
       setShowSuccess(true)
       setTimeout(() => {
         navigate('/home', { replace: true })
@@ -244,7 +254,9 @@ export default function PostCreation() {
       setUploading(false)
       setIsSubmitting(false)
       setShowSuccess(false)
-      addToast(err.message || 'Failed to create post', 'error')
+      removePostOptimistic(optimisticId)
+      console.error('Post creation failed:', err)
+      addToast('Unable to create post. Please try again.', 'error')
     }
   }
 

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../stores/authStore'
 import BottomNav from './BottomNav'
 import ConnectionStatus from './ConnectionStatus'
+import ToastContainer from './ToastContainer'
 import { useNotificationStore } from '../stores/notificationStore'
 
 const Icons = {
@@ -135,6 +136,8 @@ export default function AppLayout({ children }) {
             </motion.div>
           </AnimatePresence>
         </main>
+
+        <ToastContainer />
       </div>
 
       {/* Mobile Bottom Navigation */}

@@ -16,6 +16,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { useAuthStore } from './stores/authStore'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
+import AuthCallback from './pages/AuthCallback'
 
 export default function App() {
   const { isLoading } = useAuthStore()
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/home" element={<ProtectedRoute><AppLayout><HomeFeed /></AppLayout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />

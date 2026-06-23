@@ -5,5 +5,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(
   supabaseUrl || 'https://missing.supabase.co',
-  supabaseAnonKey || 'missing-anon-key'
+  supabaseAnonKey || 'missing-anon-key',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
 )
