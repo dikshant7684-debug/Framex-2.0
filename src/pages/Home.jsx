@@ -206,6 +206,21 @@ export default function Home() {
       <Footer />
 
       <style>{`
+        /* ----- PAGE THEME LOCK ----- */
+        :root {
+          --bg: #08080f !important;
+          --bg-alt: #0c0c18 !important;
+          --text: #ffffff !important;
+          --text-secondary: rgba(255,255,255,0.4) !important;
+          --surface: rgba(255,255,255,0.05) !important;
+          --surface-hover: rgba(255,255,255,0.10) !important;
+          --border: rgba(255,255,255,0.08) !important;
+          --accent: #CCFF00 !important;
+          --accent-text: #08080f !important;
+          --danger: #ff4d4d !important;
+          --glass-bg: rgba(255,255,255,0.05) !important;
+          --glass-border: rgba(255,255,255,0.08) !important;
+        }
         /* ===== HERO ===== */
         .hero {
             display: flex;

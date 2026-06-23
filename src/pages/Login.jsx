@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabaseClient'
+import { useAuthStore } from '../stores/authStore'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { signIn, signUp } = useAuthStore()
   const [isSignup, setIsSignup] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,20 +26,11 @@ export default function Login() {
 
     try {
       if (isSignup) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { username: username || email.split('@')[0] } }
-        })
-        if (signUpError) throw signUpError
+        await signUp(email, password, { username: username || email.split('@')[0] })
         alert('Check your email for the confirmation link!')
         setIsSignup(false)
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
-        if (signInError) throw signInError
+        await signIn(email, password)
         navigate('/home')
       }
     } catch (err) {

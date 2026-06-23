@@ -8,20 +8,8 @@
 }
 
 :root {
-    --color-bg: #08080f;
-    --color-surface: rgba(255, 255, 255, 0.04);
-    --color-glass: rgba(255, 255, 255, 0.10);
-    --color-glass-border: rgba(255, 255, 255, 0.05);
-    --color-glass-hover: rgba(255, 255, 255, 0.06);
-    --color-glass-strong: rgba(255, 255, 255, 0.07);
-    --color-lemon: #CCFF00;
-    --color-amber: #CCFF00;
-    --gradient-accent: #CCFF00;
-    --gradient-accent-2: #CCFF00;
-    --gradient-warm: #CCFF00;
     --glass-blur: 20px;
     --glass-radius: 16px;
-    --glass-border: 1px solid var(--color-glass-border);
     --font-display: 'Playfair Display', Georgia, serif;
     --font-body: 'DM Sans', 'Inter', sans-serif;
     --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -36,8 +24,8 @@ html {
 
 body {
     font-family: var(--font-body);
-    background: var(--color-bg);
-    color: #fff;
+    background: var(--bg);
+    color: var(--text);
     line-height: 1.7;
     overflow-x: hidden;
     min-height: 100vh;
@@ -47,7 +35,7 @@ h1, h2, h3, h4 {
     font-family: var(--font-display);
     font-weight: 600;
     line-height: 1.2;
-    color: #fff;
+    color: var(--text);
 }
 
 a {
@@ -69,10 +57,10 @@ button {
 
 /* ===== GLASS UTILITY ===== */
 .glass {
-    background: var(--color-glass);
+    background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: var(--glass-border);
+    border: 1px solid var(--glass-border);
     border-radius: var(--glass-radius);
     box-shadow: var(--shadow-glass);
 }
@@ -83,15 +71,15 @@ button {
     font-weight: 600;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: var(--color-amber);
+    color: var(--accent);
     margin-bottom: 1rem;
     opacity: 0.7;
 }
 
 .btn-primary {
     padding: 0.85rem 2.2rem;
-    background: var(--gradient-accent);
-    color: #08080f;
+    background: var(--accent);
+    color: var(--accent-text);
     border-radius: 10px;
     font-weight: 600;
     font-size: 0.95rem;
@@ -108,9 +96,9 @@ button {
 
 .btn-secondary {
     padding: 0.85rem 2.2rem;
-    background: var(--color-glass);
-    color: rgba(255, 255, 255, 0.85);
-    border: var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
     border-radius: 10px;
     font-weight: 500;
     font-size: 0.95rem;
@@ -121,15 +109,15 @@ button {
 }
 
 .btn-secondary:hover {
-    background: var(--color-glass-hover);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--surface-hover);
+    border-color: var(--border);
     transform: translateY(-2px);
 }
 
 .glow-ring {
     position: absolute;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
     pointer-events: none;
 }
 
@@ -139,7 +127,7 @@ button {
     inset: 0;
     z-index: -1;
     overflow: hidden;
-    background: var(--color-bg);
+    background: var(--bg);
     background-image: url('/images/bg.jpg');
     background-size: cover;
     background-position: center;

@@ -1419,7 +1419,303 @@ const chatStyles = `
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── User Panel (Channel Members) ── */
+.user-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 998;
+  animation: fadeIn 0.2s ease;
+}
+.user-panel {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(480px, calc(100vh - 160px));
+  background: var(--bg-card, #1a1a2e);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  overflow: hidden;
+}
+.user-panel-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.user-panel-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.user-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+.user-panel-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  margin: 0;
+}
+.user-panel-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-secondary, #8892b0);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.user-panel-close-btn:hover {
+  background: var(--bg-active, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary, #fff);
+}
+.user-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+  min-height: 120px;
+}
+.user-panel-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+.user-panel-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-top-color: var(--accent, #c6ff00);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.user-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+.user-panel-empty-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-tertiary, #4a4f6b);
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+.user-panel-empty p {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  margin: 0 0 6px 0;
+}
+.user-panel-empty span {
+  font-size: 13px;
+  color: var(--text-tertiary, #4a4f6b);
+}
+.user-panel-list {
+  display: flex;
+  flex-direction: column;
+}
+.user-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.user-panel-item:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.04));
+}
+.user-panel-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+}
+.user-panel-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.user-panel-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary, #8892b0);
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+}
+.user-panel-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.user-panel-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.user-panel-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-panel-verified {
+  color: var(--accent, #c6ff00);
+  flex-shrink: 0;
+}
+.user-panel-handle {
+  font-size: 12px;
+  color: var(--text-tertiary, #4a4f6b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-panel-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent, #c6ff00);
+  background: rgba(198, 255, 0, 0.12);
+  padding: 2px 10px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.channel-dropdown-arrow {
+  transition: transform 0.25s ease;
+  margin-left: 6px;
+  color: var(--text-tertiary, #4a4f6b);
+}
+.user-panel-open .channel-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* ── Responsive & Touch-target Improvements ── */
+
+/* Very small screens: < 400px */
+@media (max-width: 399px) {
+  .chat-container {
+    --safe-bottom: 0px;
+  }
+  .chat-header {
+    padding: 0 12px;
+  }
+  .chat-header-center h2 {
+    font-size: 16px;
+  }
+  .chat-messages {
+    padding: 12px;
+  }
+  .chat-composer {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .chat-composer input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  .chat-sidebar {
+    width: 100%;
+  }
+  .user-panel {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 140px);
+  }
+  .message-bubble {
+    max-width: 90%;
+  }
+}
+
+/* Tablet landscape: 768–1024px */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .chat-stories-rail {
+    max-width: 140px;
+  }
+  .chat-main {
+    max-width: calc(100% - 320px);
+  }
+}
+
+/* Large screens: > 1400px */
+@media (min-width: 1400px) {
+  .chat-container {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  .chat-main {
+    max-width: 720px;
+  }
+  .chat-stories-rail {
+    max-width: 220px;
+  }
+  .chat-sidebar {
+    width: 300px;
+  }
+  .chat-messages {
+    padding: 24px 40px;
+  }
+}
+
+/* Touch target minimum sizes for mobile */
+@media (max-width: 768px) {
+  .chat-header button,
+  .chat-composer button,
+  .chat-message-actions button,
+  .chat-sidebar-item,
+  .chat-back-btn,
+  .user-panel-close-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .chat-composer input {
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+  .chat-composer {
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  }
+  .chat-header {
+    padding-top: max(0px, env(safe-area-inset-top, 0px));
+  }
+}
+
+/* Stories rail hide on very narrow screens */
+@media (max-width: 500px) {
+  .chat-stories-rail {
+    display: none;
+  }
+}
 `
+
 
 // ────────── Main Chat Component ──────────
 export default function Chat() {
@@ -1435,6 +1731,9 @@ export default function Chat() {
   const [storyUserIndex, setStoryUserIndex] = useState(0)
   const [storyIndex, setStoryIndex] = useState(0)
   const [typingUsers, setTypingUsers] = useState([])
+  const [showUserPanel, setShowUserPanel] = useState(false)
+  const [panelUsers, setPanelUsers] = useState([])
+  const [panelLoading, setPanelLoading] = useState(false)
 
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -1605,6 +1904,78 @@ export default function Chat() {
     return () => clearTimeout(timer)
   }, [storyViewerOpen, storyUserIndex, storyIndex])
 
+  // ── Fetch followers/friends for #general channel ──
+  const fetchPanelUsers = useCallback(async () => {
+    if (!user || user.id === 'offline') return
+    setPanelLoading(true)
+    try {
+      // Get followers (people who follow the current user)
+      const { data: followers } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', user.id)
+
+      // Get who the current user follows (for mutual/friends detection)
+      const { data: following } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id)
+
+      const followerIds = (followers || []).map(f => f.follower_id)
+      const followingIds = (following || []).map(f => f.following_id)
+
+      if (followerIds.length === 0) {
+        setPanelUsers([])
+        setPanelLoading(false)
+        return
+      }
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, bio, is_verified')
+        .in('id', followerIds)
+
+      const usersWithStatus = (profiles || []).map(p => ({
+        ...p,
+        isFriend: followingIds.includes(p.id),
+        isFollower: true,
+      }))
+
+      setPanelUsers(usersWithStatus)
+    } catch (e) {
+      console.warn('Failed to fetch panel users:', e)
+      setPanelUsers([])
+    }
+    setPanelLoading(false)
+  }, [user])
+
+  // ── Load panel users when opened ──
+  useEffect(() => {
+    if (showUserPanel) fetchPanelUsers()
+  }, [showUserPanel, fetchPanelUsers])
+
+  // ── Realtime subscription for follows changes ──
+  useEffect(() => {
+    if (!user || user.id === 'offline') return
+
+    let channel
+    try {
+      channel = supabase
+        .channel('follows-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'follows' },
+          () => {
+            if (showUserPanel) fetchPanelUsers()
+          }
+        )
+        .subscribe()
+    } catch (e) {
+      console.warn('Realtime follows subscription failed')
+    }
+
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [user, showUserPanel, fetchPanelUsers])
+
   // ── Send message ──
   const sendMessage = useCallback(async (e) => {
     e?.preventDefault()
@@ -1754,8 +2125,17 @@ export default function Chat() {
           </button>
           <button className="header-logo" onClick={() => navigate('/')}>{Icons.logo}</button>
         </div>
-        <div className="chat-header-center">
+        <div className="chat-header-center" onClick={() => {
+          if (activeChannel?.name === 'general' || activeChannel?.display_name === '# general') {
+            setShowUserPanel(prev => !prev)
+          }
+        }} style={{ cursor: (activeChannel?.name === 'general') ? 'pointer' : 'default' }}>
           <h2>{channelName}</h2>
+          {(activeChannel?.name === 'general') && (
+            <svg className="channel-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          )}
         </div>
         <div className="chat-header-right">
           <button className="header-btn" aria-label="Search">{Icons.search}</button>
@@ -1766,6 +2146,67 @@ export default function Chat() {
           <button className="header-btn chat-new-btn" aria-label="New chat">{Icons.plus}</button>
         </div>
       </header>
+
+      {/* ─── User Panel (for #general channel) ─── */}
+      {showUserPanel && (
+        <div className="user-panel-overlay" onClick={() => setShowUserPanel(false)} />
+      )}
+      <div className={`user-panel ${showUserPanel ? 'user-panel-open' : ''}`}>
+        <div className="user-panel-inner">
+          <div className="user-panel-header">
+            <h3>Channel Members</h3>
+            <button className="user-panel-close-btn" onClick={() => setShowUserPanel(false)} aria-label="Close panel">
+              {Icons.close}
+            </button>
+          </div>
+          <div className="user-panel-body">
+            {panelLoading ? (
+              <div className="user-panel-loading">
+                <div className="user-panel-spinner" />
+              </div>
+            ) : panelUsers.length === 0 ? (
+              <div className="user-panel-empty">
+                <svg className="user-panel-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="22" y1="6" x2="22" y2="12" />
+                  <line x1="19" y1="9" x2="25" y2="9" />
+                </svg>
+                <p>You are alone</p>
+                <span>Follow others to see them here</span>
+              </div>
+            ) : (
+              <div className="user-panel-list">
+                {panelUsers.map(pu => (
+                  <div key={pu.id} className="user-panel-item" onClick={() => { setShowUserPanel(false); }}>
+                    <div className="user-panel-avatar">
+                      {pu.avatar_url ? (
+                        <img src={pu.avatar_url} alt="" loading="lazy" />
+                      ) : (
+                        <span className="user-panel-avatar-fallback">
+                          {(pu.display_name || pu.username || '?')[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="user-panel-info">
+                      <div className="user-panel-name-row">
+                        <span className="user-panel-name">{pu.display_name || pu.username || 'Unknown'}</span>
+                        {pu.is_verified && (
+                          <svg className="user-panel-verified" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="user-panel-handle">@{pu.username}</div>
+                    </div>
+                    {pu.isFriend && <span className="user-panel-badge">Friend</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ─── Sidebar Overlay ─── */}
       <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />

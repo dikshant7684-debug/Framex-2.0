@@ -1,102 +1,179 @@
 import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
+import { useAuthStore } from '../stores/authStore'
 
 const Icons = {
-  user: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  mail: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
-  bell: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-  shield: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-  globe: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,
-  lock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
-  chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
-  edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-  logOut: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-  smartphone: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>,
+  dark: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+    </svg>
+  ),
+  light: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  ),
+  system: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  ),
+  user: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  ),
+  lock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+    </svg>
+  ),
+  bell: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  ),
+  chevronRight: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  ),
+  helpCircle: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  info: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  ),
+  fileText: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+    </svg>
+  ),
+  logOut: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  ),
+  check: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  ),
+}
+
+const themeOptions = [
+  { id: 'dark', label: 'Dark', icon: Icons.dark },
+  { id: 'light', label: 'Light', icon: Icons.light },
+  { id: 'system', label: 'System', icon: Icons.system },
+]
+
+const accountItems = [
+  { id: 'edit-profile', label: 'Edit Profile', icon: Icons.user },
+  { id: 'privacy', label: 'Privacy Settings', icon: Icons.lock },
+  { id: 'notifications', label: 'Notification Settings', icon: Icons.bell },
+  { id: 'security', label: 'Security Settings', icon: Icons.shield },
+]
+
+const supportItems = [
+  { id: 'contact', label: 'Contact Us', icon: Icons.helpCircle },
+  { id: 'about', label: 'About FrameX', icon: Icons.info },
+  { id: 'terms', label: 'Terms & Privacy Policy', icon: Icons.fileText },
+]
+
+const fadeSlideUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5 },
 }
 
 export default function Settings() {
-  const { user, signOut } = useAuth()
-  const displayName = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'
-  const email = user?.email || 'user@framex.app'
-  const initial = displayName.charAt(0).toUpperCase()
+  const { theme, setTheme } = useTheme()
+  const { signOut } = useAuthStore()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      navigate('/login')
+    } catch {}
+  }
 
   return (
-    <div className="page-enter">
-      <div className="settings-page">
-        <div className="page-header">
-          <h1>Settings</h1>
-          <p>Manage your account and preferences</p>
-        </div>
+    <motion.div className="settings-page" {...fadeSlideUp}>
+      <div className="page-header">
+        <h1>Settings</h1>
+        <p>Manage your account and preferences</p>
+      </div>
 
-        {/* Profile */}
-        <div className="profile-card glass">
-          <div className="profile-avatar">{initial}</div>
-          <div className="profile-info">
-            <h2>{displayName}</h2>
-            <span className="profile-email">{email}</span>
-          </div>
-          <button className="edit-profile-btn">{Icons.edit} Edit Profile</button>
+      {/* Appearance */}
+      <div className="settings-card glass">
+        <h3 className="settings-card-title">Appearance</h3>
+        <div className="theme-options">
+          {themeOptions.map(opt => (
+            <button
+              key={opt.id}
+              className={`theme-card ${theme === opt.id ? 'active' : ''}`}
+              onClick={() => setTheme(opt.id)}
+            >
+              <div className="theme-card-icon">{opt.icon}</div>
+              <span className="theme-card-label">{opt.label}</span>
+              {theme === opt.id && (
+                <div className="theme-card-check">{Icons.check}</div>
+              )}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Account Settings */}
-        <div className="settings-card glass">
-          <h3 className="settings-card-title">Account Settings</h3>
-          <div className="settings-items">
-            {[
-              { icon: Icons.mail, label: 'Email Notifications', desc: 'Manage email preferences' },
-              { icon: Icons.shield, label: 'Two-Factor Auth', desc: 'Enhance account security' },
-              { icon: Icons.smartphone, label: 'Connected Accounts', desc: 'Link social profiles' },
-              { icon: Icons.globe, label: 'Language', desc: 'English (US)' },
-            ].map((item, i) => (
-              <div key={i} className="settings-item">
-                <div className="settings-item-icon">{item.icon}</div>
-                <div className="settings-item-content">
-                  <span className="settings-item-label">{item.label}</span>
-                  <span className="settings-item-desc">{item.desc}</span>
-                </div>
-                <div className="settings-item-arrow">{Icons.chevronRight}</div>
+      {/* Account */}
+      <div className="settings-card glass">
+        <h3 className="settings-card-title">Account</h3>
+        <div className="settings-items">
+          {accountItems.map(item => (
+            <div key={item.id} className="settings-item">
+              <div className="settings-item-icon">{item.icon}</div>
+              <div className="settings-item-content">
+                <span className="settings-item-label">{item.label}</span>
               </div>
-            ))}
-          </div>
+              <div className="settings-item-arrow">{Icons.chevronRight}</div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Privacy */}
-        <div className="settings-card glass">
-          <h3 className="settings-card-title">Privacy</h3>
-          <div className="settings-items">
-            {[
-              { label: 'Private Account', desc: 'Only approved followers can see your content' },
-              { label: 'Activity Status', desc: 'Show when you\'re active' },
-              { label: 'Show Read Receipts', desc: 'Let others know you\'ve seen their messages' },
-            ].map((item, i) => (
-              <div key={i} className="settings-item">
-                <div className="settings-item-icon">{Icons.lock}</div>
-                <div className="settings-item-content">
-                  <span className="settings-item-label">{item.label}</span>
-                  <span className="settings-item-desc">{item.desc}</span>
-                </div>
-                <div className={`toggle ${i === 1 ? 'toggle-on' : ''}`}>
-                  <div className="toggle-knob" />
-                </div>
+      {/* Support */}
+      <div className="settings-card glass">
+        <h3 className="settings-card-title">Support</h3>
+        <div className="settings-items">
+          {supportItems.map(item => (
+            <div key={item.id} className="settings-item">
+              <div className="settings-item-icon">{item.icon}</div>
+              <div className="settings-item-content">
+                <span className="settings-item-label">{item.label}</span>
               </div>
-            ))}
-          </div>
+              <div className="settings-item-arrow">{Icons.chevronRight}</div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Danger Zone */}
-        <div className="settings-card glass danger-zone">
-          <h3 className="settings-card-title" style={{ color: '#ff6464' }}>Danger Zone</h3>
-          <p className="danger-desc">Once you delete your account, there is no going back. Please be certain.</p>
-          <button className="delete-btn">Delete Account</button>
-        </div>
-
-        {/* Sign out */}
-        <div className="sign-out-section">
-          <button className="sign-out-btn" onClick={signOut}>
-            {Icons.logOut} Sign Out
-          </button>
-          <span className="version">FrameX v1.0.0</span>
-        </div>
+      {/* Logout */}
+      <div className="logout-section">
+        <button className="logout-btn" onClick={handleLogout}>
+          {Icons.logOut} Logout
+        </button>
+        <span className="version">FrameX v1.0.0</span>
       </div>
 
       <style>{`
@@ -104,64 +181,28 @@ export default function Settings() {
           padding: 1.5rem;
           max-width: 720px;
           margin: 0 auto;
-          animation: fadeSlideUp 0.5s ease;
         }
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+
         .glass {
-          background: rgba(255,255,255,0.05);
+          background: var(--glass-bg);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255,255,255,0.08);
+          border: 1px solid var(--glass-border);
           border-radius: 16px;
         }
 
         .page-header { margin-bottom: 1.5rem; }
-        .page-header h1 { font-size: 1.75rem; font-weight: 700; color: #fff; margin: 0 0 0.35rem; }
-        .page-header p { font-size: 0.9rem; color: rgba(255,255,255,0.4); margin: 0; }
-
-        /* Profile */
-        .profile-card {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.25rem;
-          margin-bottom: 1rem;
-        }
-        .profile-avatar {
-          width: 56px; height: 56px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #CCFF00, #a0cc00);
-          color: #08080f;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.4rem;
+        .page-header h1 {
+          font-size: 1.75rem;
           font-weight: 700;
-          flex-shrink: 0;
+          color: var(--text);
+          margin: 0 0 0.35rem;
         }
-        .profile-info { flex: 1; min-width: 0; }
-        .profile-info h2 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #fff; }
-        .profile-email { font-size: 0.85rem; color: rgba(255,255,255,0.4); }
-        .edit-profile-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.5rem 1rem;
-          border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.1);
-          background: transparent;
-          color: rgba(255,255,255,0.6);
-          font-size: 0.85rem;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-family: inherit;
-          flex-shrink: 0;
+        .page-header p {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          margin: 0;
         }
-        .edit-profile-btn svg { width: 16px; height: 16px; }
-        .edit-profile-btn:hover { border-color: #CCFF00; color: #CCFF00; }
 
         /* Cards */
         .settings-card {
@@ -171,110 +212,149 @@ export default function Settings() {
         .settings-card-title {
           font-size: 0.9rem;
           font-weight: 600;
-          color: rgba(255,255,255,0.5);
+          color: var(--text-secondary);
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          margin: 0 0 0.75rem;
+          margin: 0 0 0.85rem;
         }
+
+        /* Theme Options */
+        .theme-options {
+          display: flex;
+          gap: 0.75rem;
+        }
+        .theme-card {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1rem 0.5rem;
+          border-radius: 12px;
+          border: 2px solid var(--border);
+          background: var(--surface);
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+          position: relative;
+        }
+        .theme-card:hover {
+          background: var(--surface-hover);
+          color: var(--text);
+        }
+        .theme-card.active {
+          border-color: var(--accent);
+          color: var(--text);
+        }
+        .theme-card-icon svg {
+          width: 24px;
+          height: 24px;
+        }
+        .theme-card-label {
+          font-size: 0.82rem;
+          font-weight: 500;
+        }
+        .theme-card-check {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--accent);
+          color: var(--accent-text);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .theme-card-check svg {
+          width: 12px;
+          height: 12px;
+        }
+
+        /* Settings Items */
         .settings-items { display: flex; flex-direction: column; }
         .settings-item {
           display: flex;
           align-items: center;
           gap: 0.85rem;
           padding: 0.85rem 0;
-          border-bottom: 1px solid rgba(255,255,255,0.04);
+          border-bottom: 1px solid var(--border);
           cursor: pointer;
           transition: opacity 0.2s;
         }
         .settings-item:last-child { border-bottom: none; }
         .settings-item:hover { opacity: 0.8; }
         .settings-item-icon {
-          width: 36px; height: 36px;
+          width: 36px;
+          height: 36px;
           border-radius: 10px;
-          background: rgba(255,255,255,0.04);
+          background: var(--surface);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
-        .settings-item-icon svg { width: 18px; height: 18px; color: rgba(255,255,255,0.4); }
-        .settings-item-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
-        .settings-item-label { font-size: 0.9rem; color: #fff; font-weight: 500; }
-        .settings-item-desc { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
-        .settings-item-arrow svg { width: 18px; height: 18px; color: rgba(255,255,255,0.2); }
-
-        /* Toggle */
-        .toggle {
-          width: 40px; height: 22px;
-          border-radius: 11px;
-          background: rgba(255,255,255,0.1);
-          position: relative;
-          transition: background 0.3s;
-          flex-shrink: 0;
-          cursor: pointer;
+        .settings-item-icon svg {
+          width: 18px;
+          height: 18px;
+          color: var(--text-secondary);
         }
-        .toggle-on { background: #CCFF00; }
-        .toggle-knob {
-          width: 16px; height: 16px;
-          border-radius: 50%;
-          background: #fff;
-          position: absolute;
-          top: 3px; left: 3px;
-          transition: transform 0.3s;
-        }
-        .toggle-on .toggle-knob { transform: translateX(18px); }
-
-        /* Danger zone */
-        .danger-zone { border-color: rgba(255, 100, 100, 0.15); }
-        .danger-desc { font-size: 0.85rem; color: rgba(255,255,255,0.4); margin: 0 0 1rem; }
-        .delete-btn {
-          padding: 0.6rem 1.5rem;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 100, 100, 0.3);
-          background: rgba(255, 100, 100, 0.1);
-          color: #ff6464;
-          font-size: 0.85rem;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-family: inherit;
+        .settings-item-content { flex: 1; min-width: 0; }
+        .settings-item-label {
+          font-size: 0.9rem;
+          color: var(--text);
           font-weight: 500;
         }
-        .delete-btn:hover { background: #ff6464; color: #fff; }
+        .settings-item-arrow svg {
+          width: 18px;
+          height: 18px;
+          color: var(--text-secondary);
+          opacity: 0.4;
+        }
 
-        /* Sign out */
-        .sign-out-section {
+        /* Logout */
+        .logout-section {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 0.75rem;
-          padding: 2rem 0;
+          padding: 1.5rem 0;
         }
-        .sign-out-btn {
+        .logout-btn {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           padding: 0.65rem 2rem;
           border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid var(--border);
           background: transparent;
-          color: rgba(255,255,255,0.5);
+          color: var(--text-secondary);
           font-size: 0.9rem;
           cursor: pointer;
           transition: all 0.2s;
           font-family: inherit;
         }
-        .sign-out-btn svg { width: 18px; height: 18px; }
-        .sign-out-btn:hover { border-color: rgba(255,100,100,0.4); color: #ff6464; }
-        .version { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+        .logout-btn svg { width: 18px; height: 18px; }
+        .logout-btn:hover {
+          border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+          color: var(--danger);
+        }
+        .version {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          opacity: 0.4;
+        }
 
         @media (max-width: 600px) {
           .settings-page { padding: 1rem; }
-          .profile-card { flex-wrap: wrap; justify-content: center; text-align: center; }
-          .profile-info { width: 100%; text-align: center; }
-          .edit-profile-btn { width: 100%; justify-content: center; }
           .page-header h1 { font-size: 1.4rem; }
+          .theme-options { gap: 0.5rem; }
+          .theme-card { padding: 0.85rem 0.35rem; }
+          .theme-card-icon svg { width: 20px; height: 20px; }
         }
       `}</style>
-    </div>
+    </motion.div>
   )
 }

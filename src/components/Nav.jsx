@@ -7,6 +7,7 @@ export default function Nav() {
   const isHome = location.pathname === '/'
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [activeItem, setActiveItem] = useState('')
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -81,22 +82,25 @@ export default function Nav() {
         nav {
             position: fixed;
             top: 0;
-            left: 0;
-            right: 0;
+            left: 16px;
+            right: 16px;
+            width: calc(100% - 32px);
             z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0.8rem 5%;
-            background: rgba(8, 8, 15, 0.6);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-bottom: var(--glass-border);
+            background: rgba(8, 8, 15, 0.25);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             transition: background 0.3s ease;
         }
 
         nav.scrolled {
-            background: rgba(8, 8, 15, 0.85);
+            background: rgba(8, 8, 15, 0.45);
         }
 
         .logo {
@@ -272,24 +276,24 @@ export default function Nav() {
                 display: flex;
             }
 
-            /* Drawer backdrop */
+            /* Drawer backdrop — soft blur overlay */
             .mobile-backdrop {
                 position: fixed;
                 inset: 0;
-                background: rgba(0, 0, 0, 0.65);
-                backdrop-filter: blur(6px);
-                -webkit-backdrop-filter: blur(6px);
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(8px) saturate(1.2);
+                -webkit-backdrop-filter: blur(8px) saturate(1.2);
                 z-index: 1001;
                 opacity: 0;
                 pointer-events: none;
-                transition: opacity 0.3s ease;
+                transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
             }
             .mobile-backdrop.active {
                 opacity: 1;
                 pointer-events: all;
             }
 
-            /* Drawer panel */
+            /* Drawer panel — premium glass sidebar */
             .mobile-drawer {
                 position: fixed;
                 top: 0;
@@ -298,23 +302,37 @@ export default function Nav() {
                 max-width: 380px;
                 height: 100vh;
                 height: 100dvh;
-                background: rgba(10, 10, 22, 0.96);
-                backdrop-filter: blur(40px);
-                -webkit-backdrop-filter: blur(40px);
+                background: rgba(12, 12, 24, 0.78);
+                backdrop-filter: blur(32px) saturate(1.4);
+                -webkit-backdrop-filter: blur(32px) saturate(1.4);
                 border-left: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 24px 0 0 24px;
                 z-index: 1002;
                 transform: translateX(100%);
-                transition: transform 0.3s ease-in-out;
+                opacity: 0;
+                transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
                 display: flex;
                 flex-direction: column;
                 padding: 2rem 1.5rem;
-                box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
+                box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4), -2px 0 60px rgba(204, 255, 0, 0.04);
             }
             .mobile-drawer.active {
                 transform: translateX(0);
+                opacity: 1;
             }
 
-            /* Close button */
+            /* Glowing left-edge accent on drawer */
+            .mobile-drawer::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 1px;
+                height: 100%;
+                background: linear-gradient(to bottom, transparent, rgba(204, 255, 0, 0.06), transparent);
+            }
+
+            /* Close button — glass capsule */
             .drawer-close {
                 position: absolute;
                 top: 1rem;
@@ -325,91 +343,99 @@ export default function Nav() {
                 align-items: center;
                 justify-content: center;
                 background: rgba(255, 255, 255, 0.04);
-                border: 1px solid rgba(255, 255, 255, 0.06);
-                border-radius: 12px;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 14px;
                 color: rgba(255, 255, 255, 0.5);
                 font-size: 1.3rem;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+                padding: 0;
                 -webkit-tap-highlight-color: transparent;
                 user-select: none;
-                padding: 0;
             }
             .drawer-close:hover {
                 background: rgba(255, 255, 255, 0.1);
                 color: #fff;
+                transform: scale(1.08);
+                box-shadow: 0 0 20px rgba(204, 255, 0, 0.06);
             }
             .drawer-close:active {
                 transform: scale(0.92);
             }
 
-            /* Menu items */
+            /* Menu items container */
             .drawer-menu-items {
                 display: flex;
                 flex-direction: column;
                 gap: 0.25rem;
                 margin-top: 5rem;
             }
+
+            /* Menu item links */
             .drawer-menu-items a {
                 display: flex;
                 align-items: center;
-                min-height: 48px;
+                min-height: 52px;
                 padding: 0.75rem 1rem;
                 font-size: 1.05rem;
                 font-weight: 400;
                 color: rgba(255, 255, 255, 0.55);
                 text-decoration: none;
-                border-radius: 12px;
-                transition: all 0.25s ease;
-                letter-spacing: 0.02em;
+                border-radius: 14px;
+                transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+                letter-spacing: 0.04em;
                 -webkit-tap-highlight-color: transparent;
             }
             .drawer-menu-items a:hover {
                 color: #fff;
-                background: rgba(255, 255, 255, 0.04);
+                background: rgba(255, 255, 255, 0.06);
+                padding-left: 1.25rem;
             }
             .drawer-menu-items a:active {
                 color: #fff;
                 background: rgba(255, 255, 255, 0.08);
-                transform: scale(0.98);
+                transform: scale(0.97);
             }
 
-            /* Accent bar on hover */
-            .drawer-menu-items a::before {
+            /* Active item — accent highlight */
+            .drawer-menu-items a.active {
+                color: var(--accent);
+                background: rgba(204, 255, 0, 0.06);
+            }
+            .drawer-menu-items a.active::before {
                 content: '';
                 width: 3px;
-                height: 0;
-                background: var(--color-lemon);
+                height: 24px;
+                background: var(--accent);
                 border-radius: 2px;
                 margin-right: 0.75rem;
-                transition: height 0.25s ease;
                 flex-shrink: 0;
-            }
-            .drawer-menu-items a:hover::before {
-                height: 20px;
+                box-shadow: 0 0 12px rgba(204, 255, 0, 0.3);
             }
 
-            /* CTA button */
+            /* CTA button — gradient accent */
             .drawer-cta {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                min-height: 48px;
+                min-height: 52px;
                 margin-top: 2rem;
                 padding: 0.75rem 2rem;
-                background: var(--color-lemon);
+                background: linear-gradient(135deg, var(--accent), #b8e600);
                 color: #08080f !important;
-                border-radius: 12px;
+                border-radius: 14px;
                 font-size: 1.1rem;
                 font-weight: 600;
                 text-decoration: none;
-                transition: all 0.3s ease;
+                transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
                 -webkit-tap-highlight-color: transparent;
             }
             .drawer-cta:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 24px rgba(204, 255, 0, 0.25);
-                background: #d4ff1a;
+                transform: translateY(-2px);
+                box-shadow: 0 8px 32px rgba(204, 255, 0, 0.25);
+                background: linear-gradient(135deg, #d4ff1a, #c4e600);
             }
             .drawer-cta:active {
                 transform: scale(0.97);
@@ -430,10 +456,10 @@ export default function Nav() {
         <i className="fas fa-times" />
       </button>
       <div className="drawer-menu-items">
-        <a href="#features" onClick={closeMenu}>Features</a>
-        <a href="#community" onClick={closeMenu}>Community</a>
-        <a href="#about" onClick={closeMenu}>About</a>
-        <a href="#pricing" onClick={closeMenu}>Pricing</a>
+        <a href="#features" className={activeItem === 'features' ? 'active' : ''} onClick={() => { setActiveItem('features'); closeMenu(); }}>Features</a>
+        <a href="#community" className={activeItem === 'community' ? 'active' : ''} onClick={() => { setActiveItem('community'); closeMenu(); }}>Community</a>
+        <a href="#about" className={activeItem === 'about' ? 'active' : ''} onClick={() => { setActiveItem('about'); closeMenu(); }}>About</a>
+        <a href="#pricing" className={activeItem === 'pricing' ? 'active' : ''} onClick={() => { setActiveItem('pricing'); closeMenu(); }}>Pricing</a>
         <a href="#get-started" className="drawer-cta" onClick={closeMenu}>Get Started</a>
       </div>
     </div>

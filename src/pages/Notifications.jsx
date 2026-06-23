@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useRealtimeNotifications } from '../hooks/useRealtimeNotifications'
 
 const Icons = {
   heart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
@@ -35,16 +37,28 @@ const iconMap = {
 }
 
 export default function Notifications() {
-  const [notifs, setNotifs] = useState(todayNotifs)
+  const { notificationState = [], unreadCount, markAllAsRead } = useRealtimeNotifications()
   const [showEmpty, setShowEmpty] = useState(false)
 
-  const markAllRead = () => {
-    setNotifs(prev => prev.map(n => ({ ...n, read: true })))
-  }
+  const markAllRead = markAllAsRead
 
-  const unreadCount = notifs.filter(n => !n.read).length
+  const todayNotifs = notificationState.filter(n => {
+    const match = n.time.match(/(\d+)([mh])/)
+    if (!match) return false
+    const [, val, unit] = match
+    if (unit === 'm') return parseInt(val) < 60
+    if (unit === 'h') return parseInt(val) < 24
+    return false
+  })
+  const earlierNotifs = notificationState.filter(n => {
+    const match = n.time.match(/(\d+)([dh])/)
+    if (!match) return true
+    const [, val, unit] = match
+    if (unit === 'h') return parseInt(val) >= 1
+    return true
+  })
 
-  if (showEmpty) {
+  if (showEmpty || notificationState.length === 0) {
     return (
       <div className="page-enter">
         <div className="notifications-page">
@@ -76,22 +90,32 @@ export default function Notifications() {
           </button>
         </div>
 
-        {unreadCount > 0 && (
+        {todayNotifs.length > 0 && (
           <div className="notif-section">
             <h2 className="notif-section-title">Today</h2>
             <div className="notif-list">
-              {notifs.map((n, i) => (
-                <div key={i} className={`notif-item glass ${n.read ? 'notif-read' : ''}`}>
-                  <div className="notif-icon" style={{ background: n.read ? 'rgba(255,255,255,0.05)' : 'rgba(204,255,0,0.1)' }}>
-                    {iconMap[n.icon]}
-                  </div>
-                  <div className="notif-content">
-                    <p className="notif-text">{n.text}</p>
-                    <span className="notif-time">{n.time}</span>
-                  </div>
-                  {!n.read && <div className="notif-dot" />}
-                </div>
-              ))}
+              <AnimatePresence mode="popLayout">
+                {todayNotifs.map((n, i) => (
+                  <motion.div
+                    key={`today-${n.type}-${i}`}
+                    layout
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    className={`notif-item glass ${n.read ? 'notif-read' : ''}`}
+                  >
+                    <div className="notif-icon" style={{ background: n.read ? 'var(--surface)' : 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                      {iconMap[n.icon]}
+                    </div>
+                    <div className="notif-content">
+                      <p className="notif-text">{n.text}</p>
+                      <span className="notif-time">{n.time}</span>
+                    </div>
+                    {!n.read && <div className="notif-dot" />}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
         )}
@@ -99,17 +123,27 @@ export default function Notifications() {
         <div className="notif-section">
           <h2 className="notif-section-title">Earlier</h2>
           <div className="notif-list">
-            {earlierNotifs.map((n, i) => (
-              <div key={i} className={`notif-item glass notif-read`}>
-                <div className="notif-icon" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                  {iconMap[n.icon]}
-                </div>
-                <div className="notif-content">
-                  <p className="notif-text">{n.text}</p>
-                  <span className="notif-time">{n.time}</span>
-                </div>
-              </div>
-            ))}
+            <AnimatePresence mode="popLayout">
+              {earlierNotifs.map((n, i) => (
+                <motion.div
+                  key={`earlier-${n.type}-${i}`}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className={`notif-item glass notif-read`}
+                >
+                  <div className="notif-icon" style={{ background: 'var(--surface)' }}>
+                    {iconMap[n.icon]}
+                  </div>
+                  <div className="notif-content">
+                    <p className="notif-text">{n.text}</p>
+                    <span className="notif-time">{n.time}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -131,10 +165,10 @@ const notifStyles = `
     to { opacity: 1; transform: translateY(0); }
   }
   .glass {
-    background: rgba(255,255,255,0.05);
+    background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
   }
 
@@ -146,12 +180,12 @@ const notifStyles = `
     gap: 1rem;
   }
   .page-header-left { display: flex; align-items: center; gap: 0.75rem; }
-  .page-header h1 { font-size: 1.75rem; font-weight: 700; color: #fff; margin: 0; }
+  .page-header h1 { font-size: 1.75rem; font-weight: 700; color: var(--text); margin: 0; }
   .unread-badge {
     padding: 0.15rem 0.55rem;
     border-radius: 100px;
-    background: #CCFF00;
-    color: #08080f;
+    background: var(--accent);
+    color: var(--accent-text);
     font-size: 0.8rem;
     font-weight: 600;
   }
@@ -161,23 +195,23 @@ const notifStyles = `
     gap: 0.4rem;
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: var(--text-secondary);
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s;
     font-family: inherit;
   }
   .mark-all-btn svg { width: 16px; height: 16px; }
-  .mark-all-btn:hover:not(:disabled) { border-color: #CCFF00; color: #CCFF00; }
+  .mark-all-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .mark-all-btn:disabled { opacity: 0.4; cursor: default; }
 
   .notif-section { margin-bottom: 1.5rem; }
   .notif-section-title {
     font-size: 0.85rem;
     font-weight: 600;
-    color: rgba(255,255,255,0.3);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin: 0 0 0.75rem;
@@ -201,20 +235,20 @@ const notifStyles = `
     flex-shrink: 0;
   }
   .notif-icon svg { width: 20px; height: 20px; }
-  .notif-icon svg { color: #CCFF00; }
-  .notif-read .notif-icon svg { color: rgba(255,255,255,0.3); }
+  .notif-icon svg { color: var(--accent); }
+  .notif-read .notif-icon svg { color: var(--text-secondary); }
   .notif-content { flex: 1; min-width: 0; }
   .notif-text {
     margin: 0 0 0.2rem;
     font-size: 0.9rem;
-    color: #fff;
+    color: var(--text);
     line-height: 1.4;
   }
-  .notif-time { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
+  .notif-time { font-size: 0.78rem; color: var(--text-secondary); }
   .notif-dot {
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: #CCFF00;
+    background: var(--accent);
     flex-shrink: 0;
     animation: pulse-dot 2s infinite;
   }
@@ -231,9 +265,9 @@ const notifStyles = `
     text-align: center;
     gap: 0.75rem;
   }
-  .empty-icon svg { width: 56px; height: 56px; color: rgba(255,255,255,0.12); }
-  .empty-state h3 { margin: 0; color: #fff; font-weight: 600; }
-  .empty-state p { margin: 0; color: rgba(255,255,255,0.4); font-size: 0.9rem; }
+  .empty-icon svg { width: 56px; height: 56px; color: color-mix(in srgb, var(--text) 12%, transparent); }
+  .empty-state h3 { margin: 0; color: var(--text); font-weight: 600; }
+  .empty-state p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
 
   @media (max-width: 768px) {
     .page-header { flex-direction: column; align-items: flex-start; }

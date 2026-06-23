@@ -1,11 +1,11 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+  const { user, isLoading } = useAuthStore()
   const location = useLocation()
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -34,7 +34,7 @@ export default function ProtectedRoute({ children }) {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 

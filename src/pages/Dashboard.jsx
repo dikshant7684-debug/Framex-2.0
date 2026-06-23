@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 
 const Icons = {
   chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
@@ -16,7 +16,7 @@ const Icons = {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const displayName = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'
   const initial = displayName.charAt(0).toUpperCase()
 
