@@ -179,4 +179,50 @@ export const usePostStore = create(() => ({
 
     if (error) throw error
   },
+
+  // === Saved Posts ===
+
+  savePost: async (postId) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('saved_posts')
+      .insert({ user_id: user.id, post_id: postId })
+
+    if (error) throw error
+  },
+
+  unsavePost: async (postId) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('saved_posts')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('post_id', postId)
+
+    if (error) throw error
+  },
+
+  fetchSavedPostIds: async (userId) => {
+    const { data, error } = await supabase
+      .from('saved_posts')
+      .select('post_id')
+      .eq('user_id', userId)
+
+    if (error) throw error
+    return (data || []).map(s => s.post_id)
+  },
+
+  fetchLikedPostIds: async (userId) => {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('post_id')
+      .eq('user_id', userId)
+
+    if (error) throw error
+    return (data || []).map(l => l.post_id)
+  },
 }))

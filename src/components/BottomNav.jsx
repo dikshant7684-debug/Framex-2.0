@@ -37,11 +37,6 @@ const icons = {
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
     </svg>
   ),
-  plus: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-  ),
 }
 
 export default function BottomNav() {
@@ -99,9 +94,6 @@ export default function BottomNav() {
               )
             })}
           </div>
-          <button className="create-btn" onClick={() => navigate('/create')} aria-label="Create post">
-            {icons.plus()}
-          </button>
           <style>{bottomNavStyles}</style>
         </motion.nav>
       )}
@@ -209,39 +201,6 @@ const bottomNavStyles = `
     font-size: 0.6rem;
     font-weight: 500;
     letter-spacing: 0.02em;
-  }
-
-  .create-btn {
-    position: absolute;
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--accent-text);
-    cursor: pointer;
-    box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 35%, transparent);
-    transition: all 0.2s ease;
-    pointer-events: auto;
-    -webkit-tap-highlight-color: transparent;
-    z-index: 2;
-  }
-  .create-btn:hover {
-    transform: translateX(-50%) scale(1.05);
-    box-shadow: 0 6px 28px color-mix(in srgb, var(--accent) 50%, transparent);
-  }
-  .create-btn:active {
-    transform: translateX(-50%) scale(0.92);
-  }
-  .create-btn svg {
-    width: 26px;
-    height: 26px;
   }
 
   @media (min-width: 768px) {

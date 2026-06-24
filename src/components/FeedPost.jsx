@@ -56,6 +56,8 @@ export default function FeedPost({ post }) {
 
   const likePost = usePostStore(s => s.likePost)
   const unlikePost = usePostStore(s => s.unlikePost)
+  const savePost = usePostStore(s => s.savePost)
+  const unsavePost = usePostStore(s => s.unsavePost)
 
   const handleLike = () => {
     if (liked) {
@@ -76,7 +78,15 @@ export default function FeedPost({ post }) {
     }
   }
 
-  const handleSave = () => setSaved(prev => !prev)
+  const handleSave = () => {
+    if (saved) {
+      setSaved(false)
+      unsavePost(post.id).catch(() => setSaved(true))
+    } else {
+      setSaved(true)
+      savePost(post.id).catch(() => setSaved(false))
+    }
+  }
 
   const getInitial = (name) => name.charAt(0).toUpperCase()
 

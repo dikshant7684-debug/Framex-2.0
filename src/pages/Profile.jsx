@@ -5,6 +5,7 @@ import FeedPost from '../components/FeedPost'
 import { useRealtimeProfile } from '../hooks/useRealtimeProfile'
 import { useAuthStore } from '../stores/authStore'
 import { useProfileStore } from '../stores/profileStore'
+import { usePostStore } from '../stores/postStore'
 import { supabase } from '../lib/supabaseClient'
 
 const AVATAR_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
@@ -37,6 +38,10 @@ export default function Profile() {
   const [userPosts, setUserPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(false)
   const [userStats, setUserStats] = useState({ posts: 0, followers: 0, following: 0 })
+  const [savedPosts, setSavedPosts] = useState([])
+  const [savedPostsLoading, setSavedPostsLoading] = useState(false)
+  const [likedPosts, setLikedPosts] = useState([])
+  const [likedPostsLoading, setLikedPostsLoading] = useState(false)
   const [editForm, setEditForm] = useState({
     avatar_url: '',
     cover_url: '',
@@ -58,6 +63,9 @@ export default function Profile() {
   const unfollowUser = useProfileStore(s => s.unfollowUser)
   const fetchFollowers = useProfileStore(s => s.fetchFollowers)
   const followersByUserId = useProfileStore(s => s.followersByUserId)
+  const fetchSavedPostIds = usePostStore(s => s.fetchSavedPostIds)
+  const fetchLikedPostIds = usePostStore(s => s.fetchLikedPostIds)
+  const savedPostIds = useRef(new Set())
 
   const profile = useMemo(() => {
     const src = isOwnProfile ? authProfile : viewUser
@@ -148,6 +156,111 @@ export default function Profile() {
     fetchFollowers(targetUserId)
   }, [targetUserId, isOwnProfile, fetchFollowers])
 
+  // Fetch liked posts
+  useEffect(() => {
+    if (!targetUserId || activeTab !== 'likes') return
+    let cancelled = false
+    setLikedPostsLoading(true)
+    fetchLikedPostIds(targetUserId)
+      .then(async (likedIds) => {
+        if (!likedIds || likedIds.length === 0) {
+          if (!cancelled) setLikedPosts([])
+          return
+        }
+        const { data: posts, error } = await supabase
+          .from('posts')
+          .select('*')
+          .in('id', likedIds)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+        if (error) throw error
+        if (!posts || posts.length === 0) {
+          if (!cancelled) setLikedPosts([])
+          return
+        }
+        const userIds = [...new Set(posts.map(p => p.user_id))]
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', userIds)
+        const profileMap = {}
+        if (profiles) profiles.forEach(p => { profileMap[p.id] = p })
+        const enriched = posts.map(post => {
+          const profile = profileMap[post.user_id] || {}
+          return {
+            id: post.id,
+            username: profile.display_name || profile.username || 'Unknown',
+            handle: `@${profile.username || 'unknown'}`,
+            avatarColor: getAvatarColor(profile.username || ''),
+            content: post.content || '',
+            images: post.image_url ? [post.image_url] : [],
+            likes: post.likes_count || post.likes || 0,
+            comments: post.comments_count || 0,
+            timestamp: post.created_at ? new Date(post.created_at).getTime() : Date.now(),
+            liked: true,
+            saved: false,
+          }
+        })
+        if (!cancelled) setLikedPosts(enriched)
+      })
+      .catch(err => console.warn('Failed to fetch liked posts:', err.message))
+      .finally(() => { if (!cancelled) setLikedPostsLoading(false) })
+    return () => { cancelled = true }
+  }, [targetUserId, activeTab, fetchLikedPostIds])
+
+  // Fetch saved posts
+  useEffect(() => {
+    if (!targetUserId || activeTab !== 'saved' || !isOwnProfile) return
+    let cancelled = false
+    setSavedPostsLoading(true)
+    fetchSavedPostIds(targetUserId)
+      .then(async (savedIds) => {
+        if (!savedIds || savedIds.length === 0) {
+          if (!cancelled) { setSavedPosts([]); savedPostIds.current = new Set() }
+          return
+        }
+        savedPostIds.current = new Set(savedIds)
+        const { data: posts, error } = await supabase
+          .from('posts')
+          .select('*')
+          .in('id', savedIds)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+        if (error) throw error
+        if (!posts || posts.length === 0) {
+          if (!cancelled) setSavedPosts([])
+          return
+        }
+        const userIds = [...new Set(posts.map(p => p.user_id))]
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', userIds)
+        const profileMap = {}
+        if (profiles) profiles.forEach(p => { profileMap[p.id] = p })
+        const enriched = posts.map(post => {
+          const profile = profileMap[post.user_id] || {}
+          return {
+            id: post.id,
+            username: profile.display_name || profile.username || 'Unknown',
+            handle: `@${profile.username || 'unknown'}`,
+            avatarColor: getAvatarColor(profile.username || ''),
+            content: post.content || '',
+            images: post.image_url ? [post.image_url] : [],
+            likes: post.likes_count || post.likes || 0,
+            comments: post.comments_count || 0,
+            timestamp: post.created_at ? new Date(post.created_at).getTime() : Date.now(),
+            liked: false,
+            saved: true,
+          }
+        })
+        if (!cancelled) setSavedPosts(enriched)
+      })
+      .catch(err => console.warn('Failed to fetch saved posts:', err.message))
+      .finally(() => { if (!cancelled) setSavedPostsLoading(false) })
+    return () => { cancelled = true }
+  }, [targetUserId, activeTab, isOwnProfile, fetchSavedPostIds])
+
   const showToast = (type, message) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3000)
@@ -218,7 +331,7 @@ export default function Profile() {
   const tabs = [
     { id: 'posts', label: 'Posts' },
     { id: 'likes', label: 'Likes' },
-    { id: 'saved', label: 'Saved' },
+    ...(isOwnProfile ? [{ id: 'saved', label: 'Saved' }] : []),
   ]
 
   return (
@@ -417,9 +530,41 @@ export default function Profile() {
             transition={{ duration: 0.2 }}
             className="profile-content"
           >
-            <div className="profile-empty">
-              <p>No liked posts yet</p>
-            </div>
+            {likedPostsLoading ? (
+              <div className="profile-empty"><p>Loading liked posts...</p></div>
+            ) : viewMode === 'grid' ? (
+              <div className="profile-grid">
+                {likedPosts.length > 0 ? likedPosts.map(post => (
+                  <motion.div
+                    key={post.id}
+                    className="profile-grid-item"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {post.images?.[0] ? (
+                      <img src={post.images[0]} alt="" loading="lazy" />
+                    ) : (
+                      <div className="grid-item-text">
+                        <p>{post.content.substring(0, 60)}...</p>
+                      </div>
+                    )}
+                    <div className="grid-item-overlay">
+                      <span>{post.likes} ❤</span>
+                    </div>
+                  </motion.div>
+                )) : (
+                  <div className="profile-empty"><p>No liked posts yet</p></div>
+                )}
+              </div>
+            ) : (
+              <div className="profile-list">
+                {likedPosts.length > 0 ? likedPosts.map(post => (
+                  <FeedPost key={post.id} post={post} />
+                )) : (
+                  <div className="profile-empty"><p>No liked posts yet</p></div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
         {activeTab === 'saved' && (
@@ -431,9 +576,41 @@ export default function Profile() {
             transition={{ duration: 0.2 }}
             className="profile-content"
           >
-            <div className="profile-empty">
-              <p>No saved posts yet</p>
-            </div>
+            {savedPostsLoading ? (
+              <div className="profile-empty"><p>Loading saved posts...</p></div>
+            ) : viewMode === 'grid' ? (
+              <div className="profile-grid">
+                {savedPosts.length > 0 ? savedPosts.map(post => (
+                  <motion.div
+                    key={post.id}
+                    className="profile-grid-item"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {post.images?.[0] ? (
+                      <img src={post.images[0]} alt="" loading="lazy" />
+                    ) : (
+                      <div className="grid-item-text">
+                        <p>{post.content.substring(0, 60)}...</p>
+                      </div>
+                    )}
+                    <div className="grid-item-overlay">
+                      <span>{post.likes} ❤</span>
+                    </div>
+                  </motion.div>
+                )) : (
+                  <div className="profile-empty"><p>No saved posts yet</p></div>
+                )}
+              </div>
+            ) : (
+              <div className="profile-list">
+                {savedPosts.length > 0 ? savedPosts.map(post => (
+                  <FeedPost key={post.id} post={post} />
+                )) : (
+                  <div className="profile-empty"><p>No saved posts yet</p></div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -17,7 +17,17 @@ export const useAuthStore = create((set, get) => ({
         set({ _authListener: null })
       }
 
-      const { data: { session }, error } = await supabase.auth.getSession()
+      // Timeout: don't let auth hang forever if Supabase is unreachable
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Auth request timed out')), 8000)
+      )
+
+      const sessionResult = await Promise.race([
+        supabase.auth.getSession(),
+        timeout,
+      ])
+
+      const { data: { session }, error } = sessionResult
       if (error) throw error
 
       if (session) {

@@ -5,63 +5,21 @@ import { useRealtimeTrends } from '../hooks/useRealtimeTrends'
 import { useFeedStore } from '../stores/feedStore'
 import { supabase } from '../lib/supabaseClient'
 
-const fallbackExplorePosts = [
-  { id: '1', imageUrl: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=600', username: 'creativemind', avatarColor: '#CCFF00', likes: 234, comments: 18, isVideo: false },
-  { id: '2', imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600', username: 'designpro', avatarColor: '#FF6B6B', likes: 189, comments: 24, isVideo: false },
-  { id: '3', imageUrl: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600', username: 'codemaster', avatarColor: '#4ECDC4', likes: 312, comments: 42, isVideo: false },
-  { id: '4', imageUrl: 'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=600', username: 'artistico', avatarColor: '#A78BFA', likes: 156, comments: 11, isVideo: true },
-  { id: '5', imageUrl: 'https://images.unsplash.com/photo-1550684376-efcbd6e3f031?w=600', username: 'pixelator', avatarColor: '#FFD93D', likes: 278, comments: 33, isVideo: false },
-  { id: '6', imageUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=600', username: 'neonwave', avatarColor: '#6BCB77', likes: 445, comments: 67, isVideo: false },
-  { id: '7', imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=600', username: 'cyberpunk', avatarColor: '#FF6B6B', likes: 523, comments: 89, isVideo: true },
-  { id: '8', imageUrl: 'https://images.unsplash.com/photo-1574169208507-84376144848b?w=600', username: 'abstractor', avatarColor: '#CCFF00', likes: 167, comments: 14, isVideo: false },
-  { id: '9', imageUrl: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=600', username: 'dreamcast', avatarColor: '#A78BFA', likes: 398, comments: 55, isVideo: false },
-]
-const searchSuggestions = [
-  { type: 'trend', label: 'FrameX', sub: 'Trending' },
-  { type: 'trend', label: 'Design', sub: '12.4K posts' },
-  { type: 'trend', label: 'React', sub: '8.2K posts' },
-  { type: 'trend', label: 'UI/UX', sub: '6.7K posts' },
-  { type: 'community', label: 'Pixel Artists', sub: '12.4K members' },
-  { type: 'community', label: 'Code Crew', sub: '8.2K members' },
-  { type: 'community', label: 'Synthwave', sub: '6.7K members' },
-  { type: 'community', label: 'Neo Creators', sub: '15.1K members' },
-]
-const trendingHashtags = [
-  { tag: 'framex', posts: '2.4K' },
-  { tag: 'design', posts: '1.8K' },
-  { tag: 'coding', posts: '1.2K' },
-  { tag: 'uiux', posts: '892' },
-  { tag: 'react', posts: '756' },
-  { tag: 'photography', posts: '654' },
-  { tag: 'art', posts: '543' },
-  { tag: 'music', posts: '432' },
-]
+// No fallback posts — only real data from the feed store
+// Search suggestions come from real-time data only
+// Trending hashtags come from real-time data only
 const allCategories = [
   { id: 'for-you', label: 'For You', icon: '✨' },
   { id: 'trending', label: 'Trending', icon: '🔥' },
   { id: 'photos', label: 'Photos', icon: '📷' },
   { id: 'videos', label: 'Videos', icon: '🎬' },
-  { id: 'communities', label: 'Communities', icon: '👥' },
   { id: 'technology', label: 'Tech', icon: '💻' },
   { id: 'gaming', label: 'Gaming', icon: '🎮' },
   { id: 'art', label: 'Art', icon: '🎨' },
   { id: 'music', label: 'Music', icon: '🎵' },
 ]
-const trendingCreatorsFallback = [
-  { handle: '@creativemind', name: 'Creative Mind', avatarColor: '#CCFF00', followers: '12.4K' },
-  { handle: '@designpro', name: 'Design Pro', avatarColor: '#FF6B6B', followers: '8.7K' },
-  { handle: '@codemaster', name: 'Code Master', avatarColor: '#4ECDC4', followers: '6.2K' },
-  { handle: '@artistico', name: 'Artistico', avatarColor: '#A78BFA', followers: '5.1K' },
-]
-const communities = [
-  { name: 'Pixel Artists', icon: '🎨', members: '12.4K' },
-  { name: 'Code Crew', icon: '💻', members: '8.2K' },
-  { name: 'Synthwave', icon: '🎵', members: '6.7K' },
-  { name: 'Neo Creators', icon: '✨', members: '15.1K' },
-  { name: 'Photo Masters', icon: '📷', members: '9.3K' },
-  { name: 'Gaming Hub', icon: '🎮', members: '11.8K' },
-  { name: 'Design Talk', icon: '🎨', members: '7.5K' },
-]
+// Trending creators come from real-time data only
+// Communities come from database only
 
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
@@ -110,7 +68,7 @@ const categoryIcons = {
   trending: '🔥',
   photos: '📷',
   videos: '🎬',
-  communities: '👥',
+  // 'communities' removed — only database-backed communities, no mock data
   technology: '💻',
   gaming: '🎮',
   art: '🎨',
@@ -123,9 +81,7 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState('for-you')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
-  const { trendData, trendingCreators: liveTrendingCreators } = useRealtimeTrends()
-  const [following, setFollowing] = useState({})
-  const [joined, setJoined] = useState({})
+  const { trendData } = useRealtimeTrends()
   const searchRef = useRef(null)
   const hashtagScrollRef = useRef(null)
   const tabsScrollRef = useRef(null)
@@ -220,7 +176,7 @@ export default function Explore() {
         isVideo: !!p.video_url,
       }))
     }
-    return fallbackExplorePosts
+    return []
   }, [feedPosts])
 
   useEffect(() => {
@@ -237,31 +193,9 @@ export default function Explore() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filteredSuggestions = useMemo(() => {
-    if (!searchQuery.trim()) return searchSuggestions
-    const q = searchQuery.toLowerCase()
-    return searchSuggestions.filter(
-      (s) => s.label.toLowerCase().includes(q) || s.sub.toLowerCase().includes(q)
-    )
-  }, [searchQuery])
 
-  const toggleFollow = (handle) => {
-    setFollowing((prev) => ({ ...prev, [handle]: !prev[handle] }))
-  }
 
-  const toggleJoin = (name) => {
-    setJoined((prev) => ({ ...prev, [name]: !prev[name] }))
-  }
 
-  const getSuggestionIcon = (type) => {
-    switch (type) {
-      case 'user': return '👤'
-      case 'hashtag': return '#️⃣'
-      case 'post': return '📄'
-      case 'community': return '👥'
-      default: return '•'
-    }
-  }
 
   const SkeletonGrid = () => (
     <div className="explore-skeleton-grid">
@@ -293,7 +227,7 @@ export default function Explore() {
           )}
         </div>
         <AnimatePresence>
-          {searchFocused && (
+          {searchFocused && searchQuery.trim() && (
             <motion.div
               className="explore-suggestions"
               initial={{ opacity: 0, y: -8 }}
@@ -395,24 +329,7 @@ export default function Explore() {
                     )}
                   </>
                 )
-              ) : (
-                // Default suggestions when not searching
-                filteredSuggestions.map((s, i) => (
-                  <motion.div
-                    key={`${s.type}-${s.label}`}
-                    className="explore-suggestion-item"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                  >
-                    <span className="explore-suggestion-icon">{getSuggestionIcon(s.type)}</span>
-                    <div className="explore-suggestion-info">
-                      <span className="explore-suggestion-label">{s.label}</span>
-                      <span className="explore-suggestion-sub">{s.sub}</span>
-                    </div>
-                  </motion.div>
-                ))
-              )}
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>
@@ -421,13 +338,16 @@ export default function Explore() {
       {/* Trending Hashtags */}
       <div className="explore-hashtags-wrapper">
         <div className="explore-hashtags" ref={hashtagScrollRef}>
-          {(trendData?.length > 0 ? trendData : trendingHashtags).map((h) => (
+          {(trendData || []).map((h) => (
             <button key={h.tag} className="explore-hashtag-pill">
               <span className="explore-hashtag-sign">#</span>
               {h.tag}
               <span className="explore-hashtag-count">{h.posts}</span>
             </button>
           ))}
+          {(!trendData || trendData.length === 0) && (
+            <div className="explore-search-empty">No trends available yet</div>
+          )}
         </div>
       </div>
 
@@ -513,104 +433,8 @@ export default function Explore() {
           )}
         </div>
 
-        {/* Desktop Sidebar */}
-        <aside className="explore-sidebar">
-          {/* Trending Creators */}
-          <div className="explore-sidebar-section">
-            <h3 className="explore-sidebar-title">Trending Creators</h3>
-            <div className="explore-creators-list">
-              {(liveTrendingCreators?.length > 0 ? liveTrendingCreators : trendingCreatorsFallback).map((creator) => (
-                <div key={creator.handle} className="explore-creator-row">
-                  <div
-                    className="explore-creator-avatar"
-                    style={{ background: creator.avatarColor }}
-                  >
-                    {creator.name.charAt(0)}
-                  </div>
-                  <div className="explore-creator-info">
-                    <span className="explore-creator-name">{creator.name}</span>
-                    <span className="explore-creator-handle">{creator.handle}</span>
-                    <span className="explore-creator-followers">{creator.followers} followers</span>
-                  </div>
-                  <button
-                    className={`explore-follow-btn ${following[creator.handle] ? 'explore-following' : ''}`}
-                    onClick={() => toggleFollow(creator.handle)}
-                  >
-                    {following[creator.handle] ? 'Following' : 'Follow'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Suggested Communities */}
-          <div className="explore-sidebar-section">
-            <h3 className="explore-sidebar-title">Suggested Communities</h3>
-            <div className="explore-communities-list">
-              {communities.slice(0, 5).map((c) => (
-                <div key={c.name} className="explore-community-row">
-                  <span className="explore-community-icon">{c.icon}</span>
-                  <div className="explore-community-info">
-                    <span className="explore-community-name">{c.name}</span>
-                    <span className="explore-community-members">{c.members} members</span>
-                  </div>
-                  <button
-                    className={`explore-join-btn ${joined[c.name] ? 'explore-joined' : ''}`}
-                    onClick={() => toggleJoin(c.name)}
-                  >
-                    {joined[c.name] ? 'Joined' : 'Join'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
       </div>
 
-      {/* Mobile Creators Carousel */}
-      <div className="explore-mobile-section">
-        <h3 className="explore-mobile-title">Trending Creators</h3>
-        <div className="explore-mobile-scroll">
-          {(liveTrendingCreators?.length > 0 ? liveTrendingCreators : trendingCreatorsFallback).map((creator) => (
-            <div key={creator.handle} className="explore-mobile-creator">
-              <div
-                className="explore-mobile-creator-avatar"
-                style={{ background: creator.avatarColor }}
-              >
-                {creator.name.charAt(0)}
-              </div>
-              <span className="explore-mobile-creator-name">{creator.name}</span>
-              <span className="explore-mobile-creator-followers">{creator.followers}</span>
-              <button
-                className={`explore-mobile-follow-btn ${following[creator.handle] ? 'explore-following' : ''}`}
-                onClick={() => toggleFollow(creator.handle)}
-              >
-                {following[creator.handle] ? 'Following' : 'Follow'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile Communities Carousel */}
-      <div className="explore-mobile-section">
-        <h3 className="explore-mobile-title">Suggested Communities</h3>
-        <div className="explore-mobile-scroll">
-          {communities.slice(0, 6).map((c) => (
-            <div key={c.name} className="explore-mobile-community">
-              <span className="explore-mobile-community-icon">{c.icon}</span>
-              <span className="explore-mobile-community-name">{c.name}</span>
-              <span className="explore-mobile-community-members">{c.members}</span>
-              <button
-                className={`explore-mobile-join-btn ${joined[c.name] ? 'explore-joined' : ''}`}
-                onClick={() => toggleJoin(c.name)}
-              >
-                {joined[c.name] ? 'Joined' : 'Join'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <style>{`
         /* ────────── Layout ────────── */
@@ -1002,282 +826,9 @@ export default function Explore() {
           100% { background-position: -200% 0; }
         }
 
-        /* ────────── Sidebar ────────── */
-        .explore-sidebar {
-          width: 280px;
-          flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-        .explore-sidebar-section {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 1rem;
-        }
-        .explore-sidebar-title {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--text);
-          margin: 0 0 0.85rem;
-        }
-
-        /* ── Creator Row ── */
-        .explore-creators-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.65rem;
-        }
-        .explore-creator-row {
-          display: flex;
-          align-items: center;
-          gap: 0.65rem;
-        }
-        .explore-creator-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--accent-text);
-          flex-shrink: 0;
-        }
-        .explore-creator-info {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          line-height: 1.3;
-        }
-        .explore-creator-name {
-          font-size: 0.82rem;
-          color: var(--text);
-          font-weight: 500;
-        }
-        .explore-creator-handle {
-          font-size: 0.7rem;
-          color: var(--text-secondary);
-        }
-        .explore-creator-followers {
-          font-size: 0.65rem;
-          color: var(--text-secondary);
-          opacity: 0.7;
-        }
-        .explore-follow-btn {
-          padding: 0.3rem 0.75rem;
-          border-radius: 8px;
-          border: 1px solid var(--border);
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 0.75rem;
-          font-family: inherit;
-          cursor: pointer;
-          transition: all 0.2s;
-          flex-shrink: 0;
-          white-space: nowrap;
-        }
-        .explore-follow-btn:hover {
-          border-color: var(--accent);
-          color: var(--accent);
-        }
-        .explore-following {
-          background: color-mix(in srgb, var(--accent) 10%, transparent);
-          border-color: var(--accent);
-          color: var(--accent);
-        }
-
-        /* ── Community Row ── */
-        .explore-communities-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.65rem;
-        }
-        .explore-community-row {
-          display: flex;
-          align-items: center;
-          gap: 0.65rem;
-        }
-        .explore-community-icon {
-          font-size: 1.4rem;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .explore-community-info {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          line-height: 1.3;
-        }
-        .explore-community-name {
-          font-size: 0.82rem;
-          color: var(--text);
-          font-weight: 500;
-        }
-        .explore-community-members {
-          font-size: 0.7rem;
-          color: var(--text-secondary);
-        }
-        .explore-join-btn {
-          padding: 0.3rem 0.75rem;
-          border-radius: 8px;
-          border: 1px solid var(--border);
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 0.75rem;
-          font-family: inherit;
-          cursor: pointer;
-          transition: all 0.2s;
-          flex-shrink: 0;
-          white-space: nowrap;
-        }
-        .explore-join-btn:hover {
-          border-color: var(--accent);
-          color: var(--accent);
-        }
-        .explore-joined {
-          background: color-mix(in srgb, var(--accent) 10%, transparent);
-          border-color: var(--accent);
-          color: var(--accent);
-        }
-
-        /* ────────── Mobile Carousels ────────── */
-        .explore-mobile-section {
-          display: none;
-          margin-top: 1.25rem;
-        }
-        .explore-mobile-title {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: var(--text);
-          margin: 0 0 0.75rem;
-        }
-        .explore-mobile-scroll {
-          display: flex;
-          gap: 0.7rem;
-          overflow-x: auto;
-          padding-bottom: 0.25rem;
-          scrollbar-width: none;
-        }
-        .explore-mobile-scroll::-webkit-scrollbar {
-          display: none;
-        }
-
-        .explore-mobile-creator {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.35rem;
-          min-width: 100px;
-          padding: 0.75rem 0.5rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          flex-shrink: 0;
-        }
-        .explore-mobile-creator-avatar {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--accent-text);
-        }
-        .explore-mobile-creator-name {
-          font-size: 0.78rem;
-          color: var(--text);
-          font-weight: 500;
-          text-align: center;
-        }
-        .explore-mobile-creator-followers {
-          font-size: 0.65rem;
-          color: var(--text-secondary);
-        }
-        .explore-mobile-follow-btn {
-          padding: 0.25rem 0.7rem;
-          border-radius: 6px;
-          border: 1px solid var(--border);
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 0.7rem;
-          font-family: inherit;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .explore-mobile-follow-btn:hover {
-          border-color: var(--accent);
-          color: var(--accent);
-        }
-
-        .explore-mobile-community {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.3rem;
-          min-width: 110px;
-          padding: 0.75rem 0.5rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          flex-shrink: 0;
-        }
-        .explore-mobile-community-icon {
-          font-size: 1.6rem;
-        }
-        .explore-mobile-community-name {
-          font-size: 0.78rem;
-          color: var(--text);
-          font-weight: 500;
-          text-align: center;
-        }
-        .explore-mobile-community-members {
-          font-size: 0.65rem;
-          color: var(--text-secondary);
-        }
-        .explore-mobile-join-btn {
-          padding: 0.25rem 0.7rem;
-          border-radius: 6px;
-          border: 1px solid var(--border);
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 0.7rem;
-          font-family: inherit;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .explore-mobile-join-btn:hover {
-          border-color: var(--accent);
-          color: var(--accent);
-        }
 
         /* ────────── Responsive ────────── */
-        @media (min-width: 1024px) {
-          .explore-sidebar {
-            display: flex;
-          }
-          .explore-mobile-section {
-            display: none;
-          }
-        }
-
         @media (max-width: 1023px) {
-          .explore-sidebar {
-            display: none;
-          }
-          .explore-mobile-section {
-            display: block;
-          }
           .explore-masonry {
             column-count: 2;
           }

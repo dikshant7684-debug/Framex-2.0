@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../stores/authStore'
 import BottomNav from './BottomNav'
+import SlideFab from './SlideFab'
 import ConnectionStatus from './ConnectionStatus'
 import ToastContainer from './ToastContainer'
 import { useNotificationStore } from '../stores/notificationStore'
@@ -144,6 +145,9 @@ export default function AppLayout({ children }) {
       {!isOtherProfile && (
       <BottomNav />
       )}
+
+      {/* Slide-to-open FAB */}
+      <SlideFab />
 
       <style>{`
         .app-layout {
