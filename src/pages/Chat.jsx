@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useNotificationStore } from '../stores/notificationStore'
 
 // ────────── Icons ──────────
 const Icons = {
@@ -66,82 +67,6 @@ const Icons = {
   ),
   logo: 'F',
 }
-
-// ────────── Mock Stories Data ──────────
-const storyUsers = [
-  {
-    id: 1,
-    name: 'Your Story',
-    avatar: '',
-    online: true,
-    unread: false,
-    isOwn: true,
-    stories: [
-      { id: 101, type: 'gradient', gradient: 'linear-gradient(135deg, #C6FF00, #00E5FF)', duration: 5000 },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Luna',
-    avatar: '',
-    online: true,
-    unread: true,
-    stories: [
-      { id: 201, type: 'gradient', gradient: 'linear-gradient(135deg, #f093fb, #f5576c)', duration: 5000 },
-      { id: 202, type: 'gradient', gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)', duration: 4000 },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Marcus',
-    avatar: '',
-    online: true,
-    unread: true,
-    stories: [
-      { id: 301, type: 'gradient', gradient: 'linear-gradient(135deg, #a18cd1, #fbc2eb)', duration: 5000 },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Sofia',
-    avatar: '',
-    online: false,
-    unread: false,
-    stories: [
-      { id: 401, type: 'gradient', gradient: 'linear-gradient(135deg, #fccb90, #d57eeb)', duration: 4000 },
-    ],
-  },
-  {
-    id: 5,
-    name: 'Kai',
-    avatar: '',
-    online: true,
-    unread: true,
-    stories: [
-      { id: 501, type: 'gradient', gradient: 'linear-gradient(135deg, #667eea, #764ba2)', duration: 5000 },
-    ],
-  },
-  {
-    id: 6,
-    name: 'Zara',
-    avatar: '',
-    online: false,
-    unread: false,
-    stories: [
-      { id: 601, type: 'gradient', gradient: 'linear-gradient(135deg, #89f7fe, #66a6ff)', duration: 4000 },
-    ],
-  },
-  {
-    id: 7,
-    name: 'Jules',
-    avatar: '',
-    online: true,
-    unread: true,
-    stories: [
-      { id: 701, type: 'gradient', gradient: 'linear-gradient(135deg, #f43b47, #453a94)', duration: 5000 },
-    ],
-  },
-]
 
 // ────────── Story Viewer ──────────
 function StoryViewer({ stories, userIndex, storyIndex, onClose, onNext, onPrev }) {
@@ -1714,6 +1639,302 @@ const chatStyles = `
     display: none;
   }
 }
+
+/* ── Inline Search Bar ── */
+.inline-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 8px 14px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.25s ease;
+}
+.inline-search-bar:focus-within {
+  background: rgba(255,255,255,0.12);
+  border-color: var(--chat-accent);
+  box-shadow: 0 0 20px rgba(198, 255, 0, 0.1);
+}
+.inline-search-bar svg {
+  width: 18px;
+  height: 18px;
+  color: var(--chat-text-secondary);
+  flex-shrink: 0;
+}
+.inline-search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--chat-text);
+  font-size: 14px;
+  font-family: var(--font-body);
+}
+.inline-search-bar input::placeholder {
+  color: var(--chat-text-secondary);
+}
+.inline-search-clear {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: var(--chat-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s;
+}
+.inline-search-clear:hover {
+  background: rgba(255,255,255,0.2);
+  color: var(--chat-text);
+}
+.inline-search-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Inline Search Dropdown ── */
+.inline-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: transparent;
+}
+.inline-search-dropdown {
+  position: fixed;
+  top: var(--chat-header-h);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(400px, calc(100vh - var(--chat-header-h) - 24px));
+  background: rgba(10, 14, 30, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  z-index: 60;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease;
+}
+.inline-search-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.inline-search-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.inline-search-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+.inline-search-item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--chat-glass-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+.inline-search-item-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.inline-search-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.inline-search-item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.inline-search-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inline-search-item-username {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+}
+.inline-search-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 14px;
+}
+.inline-search-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.inline-search-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  border: 2px solid #0a0e1e;
+}
+.inline-search-status.online {
+  background: #22c55e;
+}
+.inline-search-status.offline {
+  background: rgba(255,255,255,0.25);
+}
+
+/* ── Chat Header DM ── */
+.chat-header-dm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+.chat-header-dm-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--chat-glass-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--chat-accent);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.chat-header-dm-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.chat-header-dm-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.chat-header-dm-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--chat-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  line-height: 1.2;
+}
+.chat-header-dm-username {
+  font-size: 11px;
+  color: var(--chat-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  line-height: 1.2;
+}
+
+@media (max-width: 480px) {
+  .inline-search-dropdown {
+    width: calc(100vw - 16px);
+    left: 8px;
+    transform: none;
+    max-height: calc(100vh - var(--chat-header-h) - 16px);
+  }
+}
+
+/* ── Send Error ── */
+.chat-send-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  margin: 0 12px 8px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px;
+  color: #f87171;
+  font-size: 13px;
+}
+.chat-send-error button {
+  background: none;
+  border: none;
+  color: #f87171;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.7;
+}
+.chat-send-error button:hover {
+  opacity: 1;
+}
+
+/* ── Upload Progress ── */
+.chat-upload-progress {
+  margin: 0 12px 8px;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.chat-upload-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #7c5cfc, #a78bfa);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ── Spinner ── */
+@keyframes chat-spin {
+  to { transform: rotate(360deg); }
+}
+.chat-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: chat-spin 0.6s linear infinite;
+}
+
+/* ── Send button disabled state ── */
+.send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 `
 
 
@@ -1722,10 +1943,10 @@ export default function Chat() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeChannel, setActiveChannel] = useState(null)
+  const [activeConv, setActiveConv] = useState(null)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
-  const [channels, setChannels] = useState([])
+  const [conversations, setConversations] = useState([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [storyViewerOpen, setStoryViewerOpen] = useState(false)
   const [storyUserIndex, setStoryUserIndex] = useState(0)
@@ -1734,6 +1955,21 @@ export default function Chat() {
   const [showUserPanel, setShowUserPanel] = useState(false)
   const [panelUsers, setPanelUsers] = useState([])
   const [panelLoading, setPanelLoading] = useState(false)
+  const [storyUsers, setStoryUsers] = useState([])
+
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState(null)
+  const [attachedFile, setAttachedFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('connected')
+  const [showInlineSearch, setShowInlineSearch] = useState(false)
+  const [dmPartner, setDmPartner] = useState(null)
+  const fileInputRef = useRef(null)
+  const unreadCount = useNotificationStore(s => s.unreadCount)
 
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -1758,44 +1994,118 @@ export default function Chat() {
     init()
   }, [navigate])
 
-  // ── Load channels ──
+  // ── Load conversations ──
   useEffect(() => {
     if (!user || user.id === 'offline') {
-      // Offline mode: show sample channels
-      setChannels([
+      // Offline mode: show sample conversations
+      setConversations([
         { id: 'general', name: 'general', display_name: '# general' },
         { id: 'random', name: 'random', display_name: '# random' },
       ])
-      setActiveChannel({ id: 'general', name: 'general', display_name: '# general' })
+      setActiveConv({ id: 'general', name: 'general', display_name: '# general' })
       return
     }
 
-    const fetchChannels = async () => {
+    const fetchConversations = async () => {
       try {
         const { data } = await supabase
-          .from('channels')
+          .from('conversations')
           .select('*')
           .order('name')
         if (data) {
-          setChannels(data)
-          if (!activeChannel && data.length > 0) {
-            setActiveChannel(data[0])
+          setConversations(data)
+          if (!activeConv && data.length > 0) {
+            setActiveConv(data[0])
           }
         }
       } catch (e) {
-        console.warn('Failed to fetch channels:', e)
-        setChannels([
+        console.warn('Failed to fetch conversations:', e)
+        setConversations([
           { id: 'general', name: 'general', display_name: '# general' },
         ])
-        setActiveChannel({ id: 'general', name: 'general', display_name: '# general' })
+        setActiveConv({ id: 'general', name: 'general', display_name: '# general' })
       }
     }
-    fetchChannels()
+    fetchConversations()
+  }, [user])
+
+  // ── Connection status ──
+  useEffect(() => {
+    const channel = supabase.channel('realtime-status')
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') setConnectionStatus('connected')
+      else if (status === 'CHANNEL_ERROR') setConnectionStatus('error')
+      else if (status === 'CLOSED') setConnectionStatus('disconnected')
+    })
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  // ── Track DM partner ──
+  useEffect(() => {
+    if (!activeConv || activeConv.type !== 'dm' || !user || user.id === 'offline') {
+      setDmPartner(null)
+      return
+    }
+    const fetchPartner = async () => {
+      try {
+        const { data: participants } = await supabase
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', activeConv.id)
+        const otherId = participants?.find(p => p.user_id !== user.id)?.user_id
+        if (otherId) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url, status')
+            .eq('id', otherId)
+            .single()
+          if (data) setDmPartner(data)
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchPartner()
+  }, [activeConv, user])
+
+  // ── Escape key closes inline search ──
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setShowInlineSearch(false) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  // ── Fetch profiles for stories rail ──
+  useEffect(() => {
+    if (!user || user.id === 'offline') return
+    const fetchProfiles = async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .limit(20)
+        if (data) {
+          const mapped = data.filter(p => p.id !== user.id).map(p => ({
+            id: p.id,
+            name: p.display_name || p.username || 'User',
+            avatar: p.avatar_url || '',
+            online: false,
+            unread: false,
+            isOwn: false,
+          }))
+          setStoryUsers([
+            { id: user.id, name: 'Your Story', avatar: user.user_metadata?.avatar_url || '', online: true, unread: false, isOwn: true },
+            ...mapped.slice(0, 19)
+          ])
+        }
+      } catch (e) { /* silence stories errors */ }
+    }
+    fetchProfiles()
   }, [user])
 
   // ── Load messages ──
   useEffect(() => {
-    if (!activeChannel) return
+    if (!activeConv) return
 
     const fetchMessages = async () => {
       try {
@@ -1804,16 +2114,16 @@ export default function Chat() {
             {
               id: '1',
               content: 'Welcome to FrameX Chat! 🎉',
-              user_id: 'system',
+              sender_id: 'system',
               created_at: new Date().toISOString(),
-              profiles: { display_name: 'FrameX', username: 'framex' },
+              sender: { display_name: 'FrameX', username: 'framex' },
             },
             {
               id: '2',
               content: 'Select a story to view it. This is a demo environment.',
-              user_id: 'system',
+              sender_id: 'system',
               created_at: new Date(Date.now() - 60000).toISOString(),
-              profiles: { display_name: 'FrameX', username: 'framex' },
+              sender: { display_name: 'FrameX', username: 'framex' },
             },
           ])
           return
@@ -1821,8 +2131,8 @@ export default function Chat() {
 
         const { data } = await supabase
           .from('messages')
-          .select('*, profiles(*)')
-          .eq('channel_id', activeChannel.id)
+          .select('*')
+          .eq('conversation_id', activeConv.id)
           .order('created_at', { ascending: true })
           .limit(100)
         if (data) setMessages(data)
@@ -1831,25 +2141,25 @@ export default function Chat() {
       }
     }
     fetchMessages()
-  }, [activeChannel, user])
+  }, [activeConv, user])
 
   // ── Subscribe to realtime messages ──
   useEffect(() => {
-    if (!activeChannel || user?.id === 'offline') return
+    if (!activeConv || user?.id === 'offline') return
 
     let channel
     const setupSubscription = async () => {
       try {
         channel = supabase
-          .channel(`messages:${activeChannel.id}`)
+          .channel(`messages:${activeConv.id}`)
           .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${activeChannel.id}` },
+            { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConv.id}` },
             (payload) => {
               const newMsg = payload.new
-              if (newMsg.user_id !== user?.id) {
+              if (newMsg.sender_id !== user?.id) {
                 // Fetch profile for the new message
-                supabase.from('profiles').select('*').eq('id', newMsg.user_id).single().then(({ data: profile }) => {
-                  setMessages(prev => [...prev, { ...newMsg, profiles: profile }])
+                supabase.from('profiles').select('*').eq('id', newMsg.sender_id).single().then(({ data: profile }) => {
+                  setMessages(prev => [...prev, { ...newMsg, sender: profile }])
                 }).catch(() => {
                   setMessages(prev => [...prev, newMsg])
                 })
@@ -1865,7 +2175,7 @@ export default function Chat() {
     return () => {
       if (channel) supabase.removeChannel(channel)
     }
-  }, [activeChannel, user])
+  }, [activeConv, user])
 
   // ── Scroll to bottom on new messages ──
   useEffect(() => {
@@ -1903,6 +2213,32 @@ export default function Chat() {
 
     return () => clearTimeout(timer)
   }, [storyViewerOpen, storyUserIndex, storyIndex])
+
+  // ── Debounced user search ──
+  useEffect(() => {
+    if (!searchQuery.trim() || user?.id === 'offline') {
+      setSearchResults([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, status')
+          .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+          .limit(20)
+        setSearchResults(data || [])
+      } catch (e) {
+        console.warn('Search failed:', e)
+        setSearchResults([])
+      }
+      setSearching(false)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery, user])
 
   // ── Fetch followers/friends for #general channel ──
   const fetchPanelUsers = useCallback(async () => {
@@ -1977,12 +2313,15 @@ export default function Chat() {
   }, [user, showUserPanel, fetchPanelUsers])
 
   // ── Send message ──
+  const pendingMessages = useRef(new Set())
+
   const sendMessage = useCallback(async (e) => {
     e?.preventDefault()
-    if (!input.trim() || !activeChannel) return
+    if (!input.trim() || !activeConv) return
 
     const content = input.trim()
     setInput('')
+    setSendError(null)
 
     if (user?.id === 'offline') {
       setMessages(prev => [
@@ -1990,32 +2329,99 @@ export default function Chat() {
         {
           id: `msg-${Date.now()}`,
           content,
-          user_id: 'offline',
+          sender_id: 'offline',
           created_at: new Date().toISOString(),
-          profiles: { display_name: 'You', username: 'you' },
+          sender: { display_name: 'You', username: 'you' },
         },
       ])
       return
     }
 
+    // Add optimistic message immediately so the user sees it
+    const tempId = `msg-${Date.now()}`
+    const optimisticMsg = {
+      id: tempId,
+      conversation_id: activeConv.id,
+      sender_id: user.id,
+      content,
+      created_at: new Date().toISOString(),
+      sender: {
+        display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You',
+        username: user?.email?.split('@')[0] || 'you',
+      },
+    }
+    setMessages(prev => [...prev, optimisticMsg])
+
+    setSending(true)
+    pendingMessages.current.add(tempId)
+
     try {
-      const { data } = await supabase
+      let fileUrl = null
+
+      // Upload attached file if present
+      if (attachedFile) {
+        setUploading(true)
+        const fileExt = attachedFile.name.split('.').pop()
+        const filePath = `${user.id}/${Date.now()}.${fileExt}`
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat-files')
+          .upload(filePath, attachedFile)
+
+        if (uploadError) throw uploadError
+        if (uploadData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('chat-files')
+            .getPublicUrl(uploadData.path)
+          fileUrl = publicUrl
+        }
+        setUploading(false)
+        setAttachedFile(null)
+        setUploadProgress(0)
+      }
+
+      // Insert message without join — attach profile separately
+      // (avoids FK relationship dependency issues with insert+select join)
+      const { data, error } = await supabase
         .from('messages')
         .insert({
-          channel_id: activeChannel.id,
-          user_id: user.id,
+          conversation_id: activeConv.id,
           content,
+          file_url: fileUrl,
         })
-        .select('*, profiles(*)')
+        .select()
         .single()
 
-      if (data) {
-        setMessages(prev => [...prev, data])
+      if (error) throw error
+
+      if (data && pendingMessages.current.has(tempId)) {
+        pendingMessages.current.delete(tempId)
+
+        // Fetch profile separately (matches postStore pattern)
+        let profile = null
+        try {
+          const { data: p } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url, is_verified')
+            .eq('id', data.sender_id)
+            .single()
+          profile = p
+        } catch {
+          // profile might not exist yet
+        }
+
+        const realMsg = { ...data, sender: profile }
+        // Replace optimistic message with real one
+        setMessages(prev => prev.map(m => m.id === tempId ? realMsg : m))
       }
     } catch (e) {
-      console.warn('Failed to send message')
+      setSendError(e.message || 'Failed to send message')
+      console.warn('Send message error:', e)
+    } finally {
+      setSending(false)
+      pendingMessages.current.delete(tempId)
     }
-  }, [input, activeChannel, user])
+  }, [input, activeConv, user, attachedFile])
 
   // ── Sign out ──
   const signOut = useCallback(async () => {
@@ -2096,7 +2502,7 @@ export default function Chat() {
     if (msgDate !== prevDate) {
       acc.push({ type: 'date', date: msg.created_at })
     }
-    acc.push({ type: 'message', msg, isOwn: msg.user_id === user?.id })
+    acc.push({ type: 'message', msg, isOwn: msg.sender_id === user?.id })
     return acc
   }, [])
 
@@ -2114,7 +2520,7 @@ export default function Chat() {
   }
 
   // ── Get active display name ──
-  const channelName = activeChannel?.display_name || activeChannel?.name || 'Select a channel'
+  const convName = activeConv?.display_name || activeConv?.name || 'Select a channel'
 
   // ── Get current user info ──
   const currentUserName = user?.user_metadata?.full_name || user?.email || 'User'
@@ -2133,25 +2539,61 @@ export default function Chat() {
           </button>
           <button className="header-logo" onClick={() => navigate('/')}>{Icons.logo}</button>
         </div>
-        <div className="chat-header-center" onClick={() => {
-          if (activeChannel?.name === 'general' || activeChannel?.display_name === '# general') {
-            setShowUserPanel(prev => !prev)
-          }
-        }} style={{ cursor: (activeChannel?.name === 'general') ? 'pointer' : 'default' }}>
-          <h2>{channelName}</h2>
-          {(activeChannel?.name === 'general') && (
-            <svg className="channel-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+        <div className="chat-header-center">
+          {showInlineSearch ? (
+            <div className="inline-search-bar">
+              {Icons.search}
+              <input
+                type="text"
+                placeholder="Search users by name or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {searchQuery && (
+                <button className="inline-search-clear" onClick={() => { setSearchQuery(''); setSearchResults([]); }}>
+                  {Icons.close}
+                </button>
+              )}
+            </div>
+          ) : dmPartner ? (
+            <div className="chat-header-dm">
+              <div className="chat-header-dm-avatar">
+                {dmPartner.avatar_url ? (
+                  <img src={dmPartner.avatar_url} alt="" />
+                ) : (
+                  <span>{getInitials(dmPartner.display_name || dmPartner.username)}</span>
+                )}
+              </div>
+              <div className="chat-header-dm-info">
+                <span className="chat-header-dm-name">{dmPartner.display_name || dmPartner.username}</span>
+                <span className="chat-header-dm-username">@{dmPartner.username}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 onClick={() => {
+                if (activeConv?.name === 'general' || activeConv?.display_name === '# general') {
+                  setShowUserPanel(prev => !prev)
+                }
+              }} style={{ cursor: (activeConv?.name === 'general') ? 'pointer' : 'default' }}>
+                {convName}
+              </h2>
+              {(activeConv?.name === 'general') && (
+                <svg className="channel-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              )}
+            </>
           )}
         </div>
         <div className="chat-header-right">
-          <button className="header-btn" aria-label="Search">{Icons.search}</button>
-          <button className="header-btn" aria-label="Notifications">
+          <button className="header-btn" aria-label="Search" onClick={() => setShowInlineSearch(prev => !prev)}>{Icons.search}</button>
+          <button className="header-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
             {Icons.bell}
-            <span className="notification-badge" />
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
-          <button className="header-btn chat-new-btn" aria-label="New chat">{Icons.plus}</button>
+          <button className="header-btn chat-new-btn" aria-label="New chat" onClick={() => setShowInlineSearch(prev => !prev)}>{Icons.plus}</button>
         </div>
       </header>
 
@@ -2277,12 +2719,12 @@ export default function Chat() {
 
       {/* ─── Main Content ─── */}
       <main className="chat-main">
-        {!activeChannel ? (
+        {!activeConv ? (
           <div className="messages-container">
             <div className="channel-selector">
-              <h3>Channels</h3>
-              {channels.map(ch => (
-                <button key={ch.id} className="channel-item" onClick={() => setActiveChannel(ch)}>
+              <h3>Conversations</h3>
+              {conversations.map(ch => (
+                <button key={ch.id} className="channel-item" onClick={() => setActiveConv(ch)}>
                   <div className="channel-avatar">#</div>
                   <div className="channel-info">
                     <div className="channel-name">{ch.display_name || `# ${ch.name}`}</div>
@@ -2297,8 +2739,17 @@ export default function Chat() {
           <div className="messages-container">
             <div className="empty-state">
               <div className="empty-state-icon">{Icons.chat}</div>
-              <h3>No messages yet</h3>
-              <p>Start the conversation. Send a message to begin chatting.</p>
+              {activeConv?.type === 'dm' && dmPartner ? (
+                <>
+                  <h3>Start a conversation with @{dmPartner.username}</h3>
+                  <p>Send a message to begin chatting.</p>
+                </>
+              ) : (
+                <>
+                  <h3>No messages yet</h3>
+                  <p>Start the conversation. Send a message to begin chatting.</p>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -2313,7 +2764,7 @@ export default function Chat() {
                   <div className="chat-msg-bubble">
                     {!isOwn && (
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--chat-accent)', marginBottom: 2 }}>
-                        {msg.profiles?.display_name || msg.profiles?.username || 'Unknown'}
+                        {msg.sender?.display_name || msg.sender?.username || 'Unknown'}
                       </div>
                     )}
                     <div>{msg.content}</div>
@@ -2346,18 +2797,29 @@ export default function Chat() {
 
       {/* ─── Composer ─── */}
       <div className="chat-composer-wrapper">
+        {uploading && (
+          <div className="chat-upload-progress">
+            <div className="chat-upload-progress-bar" style={{ width: `${uploadProgress || 50}%` }} />
+          </div>
+        )}
         <form className="chat-composer" onSubmit={sendMessage}>
-          <button type="button" className="composer-btn" aria-label="Attach file">
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: 'none' }}
+            onChange={(e) => setAttachedFile(e.target.files[0] || null)}
+          />
+          <button type="button" className="composer-btn" aria-label="Attach file" onClick={() => fileInputRef.current?.click()}>
             {Icons.attachment}
           </button>
           <input
             ref={inputRef}
             className="composer-input"
             type="text"
-            placeholder={activeChannel ? `Message ${activeChannel.display_name || activeChannel.name || 'channel'}...` : 'Select a channel to start chatting'}
+            placeholder={activeConv ? `Message ${activeConv.display_name || activeConv.name || 'channel'}...` : 'Select a conversation to start chatting'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={!activeChannel}
+            disabled={!activeConv}
             aria-label="Message input"
           />
           <button type="button" className="composer-btn" aria-label="Add emoji">
@@ -2369,12 +2831,18 @@ export default function Chat() {
           <button
             type="submit"
             className="composer-btn send-btn"
-            disabled={!input.trim() || !activeChannel}
+            disabled={!input.trim() || !activeConv || sending || uploading}
             aria-label="Send message"
           >
-            {Icons.send}
+            {sending ? <div className="chat-spinner" /> : Icons.send}
           </button>
         </form>
+        {sendError && (
+          <div className="chat-send-error">
+            <span>{sendError}</span>
+            <button onClick={() => setSendError(null)} aria-label="Dismiss error">{Icons.close}</button>
+          </div>
+        )}
       </div>
 
       {/* ─── Stories Rail ─── */}
@@ -2402,6 +2870,97 @@ export default function Chat() {
           ))}
         </div>
       </div>
+
+      {/* ─── Inline Search ─── */}
+      {showInlineSearch && (
+        <>
+          <div className="inline-search-overlay" onClick={() => setShowInlineSearch(false)} />
+          <div className="inline-search-dropdown">
+            {searching ? (
+              <div className="inline-search-spinner" />
+            ) : searchResults.length > 0 ? (
+              searchResults.map((sr) => (
+                <div
+                  key={sr.id}
+                  className="inline-search-item"
+                  onClick={async () => {
+                    try {
+                      // Check if conversation already exists via conversation_participants
+                      const { data: userConvs } = await supabase
+                        .from('conversation_participants')
+                        .select('conversation_id')
+                        .eq('user_id', user.id)
+                      const convIds = userConvs?.map(c => c.conversation_id) || []
+                      let existingConv = null
+                      if (convIds.length > 0) {
+                        const { data: otherParticipants } = await supabase
+                          .from('conversation_participants')
+                          .select('conversation_id')
+                          .in('conversation_id', convIds)
+                          .eq('user_id', sr.id)
+                        const existingConvId = otherParticipants?.[0]?.conversation_id
+                        if (existingConvId) {
+                          const { data: conv } = await supabase
+                            .from('conversations')
+                            .select('*')
+                            .eq('id', existingConvId)
+                            .single()
+                          existingConv = conv
+                        }
+                      }
+                      if (existingConv) {
+                        setActiveConv(existingConv)
+                      } else {
+                        const { data: newConv } = await supabase
+                          .from('conversations')
+                          .insert({ type: 'dm', created_by: user.id })
+                          .select()
+                          .single()
+                        if (newConv) {
+                          await supabase
+                            .from('conversation_participants')
+                            .insert([
+                              { conversation_id: newConv.id, user_id: user.id },
+                              { conversation_id: newConv.id, user_id: sr.id },
+                            ])
+                          setConversations(prev => [newConv, ...prev])
+                          setActiveConv(newConv)
+                        }
+                      }
+                      // fetch DM partner profile
+                      if (sr.id !== user.id) {
+                        setDmPartner(sr)
+                      }
+                    } catch (err) {
+                      console.warn('Conversation create error:', err)
+                    }
+                    setShowInlineSearch(false)
+                    setSearchQuery('')
+                    setSearchResults([])
+                  }}
+                >
+                  <div className="inline-search-item-avatar">
+                    {sr.avatar_url ? (
+                      <img src={sr.avatar_url} alt="" loading="lazy" />
+                    ) : (
+                      <span>{sr.display_name?.[0] || sr.username?.[0] || '?'}</span>
+                    )}
+                    <span className={`inline-search-status ${sr.status === 'online' ? 'online' : 'offline'}`} />
+                  </div>
+                  <div className="inline-search-item-info">
+                    <div className="inline-search-item-name">
+                      {sr.display_name || sr.username || 'Unknown'}
+                    </div>
+                    <div className="inline-search-item-username">@{sr.username}</div>
+                  </div>
+                </div>
+              ))
+            ) : searchQuery.trim() ? (
+              <div className="inline-search-empty">No users found</div>
+            ) : null}
+          </div>
+        </>
+      )}
 
       {/* ─── Story Viewer ─── */}
       {storyViewerOpen && (

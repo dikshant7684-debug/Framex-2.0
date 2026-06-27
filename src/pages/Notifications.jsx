@@ -13,52 +13,63 @@ const Icons = {
   tag: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
 }
 
-const todayNotifs = [
-  { type: 'like', icon: 'heart', text: 'CyberArtist liked your post "Neon Dreams"', time: '2m ago', read: false },
-  { type: 'follow', icon: 'user', text: 'PixelKitten started following you', time: '8m ago', read: false },
-  { type: 'comment', icon: 'message', text: 'VaporWave commented on your post', time: '15m ago', read: false },
-  { type: 'invite', icon: 'users', text: 'You were invited to join Synthwave Producers', time: '42m ago', read: false },
-  { type: 'tag', icon: 'tag', text: 'NeonDreamer tagged you in a post', time: '1h ago', read: true },
-]
+const formatRelativeTime = (dateStr) => {
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diff = now - d
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days < 7) return `${days}d ago`
+  return d.toLocaleDateString()
+}
 
-const earlierNotifs = [
-  { type: 'like', icon: 'heart', text: 'DeepMind liked your post "Abstract #7"', time: '3h ago', read: true },
-  { type: 'follow', icon: 'user', text: 'OutRunner started following you', time: '5h ago', read: true },
-  { type: 'comment', icon: 'message', text: 'RetroArt commented on "Digital Garden"', time: '1d ago', read: true },
-  { type: 'like', icon: 'heart', text: 'AstroMike liked 3 of your posts', time: '2d ago', read: true },
-]
+const getNotificationText = (n) => {
+  const actorName = n.actor?.display_name || n.actor?.username || 'Someone'
+  switch (n.type) {
+    case 'like': return `${actorName} liked your post`
+    case 'follow': return `${actorName} started following you`
+    case 'comment': return `${actorName} commented on your post`
+    case 'mention': return `${actorName} mentioned you`
+    case 'message': return `${actorName} sent you a message`
+    case 'invite': return `${actorName} invited you to join`
+    default: return `${actorName} interacted with you`
+  }
+}
 
-const iconMap = {
-  heart: Icons.heartFilled,
-  user: Icons.user,
-  message: Icons.messageCircle,
-  users: Icons.users,
-  tag: Icons.tag,
+const getNotificationIcon = (type) => {
+  const map = {
+    like: Icons.heartFilled,
+    follow: Icons.user,
+    comment: Icons.messageCircle,
+    mention: Icons.tag,
+    message: Icons.messageCircle,
+    invite: Icons.users,
+  }
+  return map[type] || Icons.heartFilled
 }
 
 export default function Notifications() {
-  const { notificationState = [], unreadCount, markAllAsRead } = useRealtimeNotifications()
+  const { liveNotifications = [], unreadCount, markAllAsRead } = useRealtimeNotifications()
   const [showEmpty, setShowEmpty] = useState(false)
 
   const markAllRead = markAllAsRead
 
-  const todayNotifs = notificationState.filter(n => {
-    const match = n.time.match(/(\d+)([mh])/)
-    if (!match) return false
-    const [, val, unit] = match
-    if (unit === 'm') return parseInt(val) < 60
-    if (unit === 'h') return parseInt(val) < 24
-    return false
+  const todayNotifs = liveNotifications.filter(n => {
+    const created = new Date(n.created_at)
+    const now = new Date()
+    return (now - created) < 86400000
   })
-  const earlierNotifs = notificationState.filter(n => {
-    const match = n.time.match(/(\d+)([dh])/)
-    if (!match) return true
-    const [, val, unit] = match
-    if (unit === 'h') return parseInt(val) >= 1
-    return true
+  const earlierNotifs = liveNotifications.filter(n => {
+    const created = new Date(n.created_at)
+    const now = new Date()
+    return (now - created) >= 86400000
   })
 
-  if (showEmpty || notificationState.length === 0) {
+  if (showEmpty || liveNotifications.length === 0) {
     return (
       <div className="page-enter">
         <div className="notifications-page">
@@ -97,22 +108,22 @@ export default function Notifications() {
               <AnimatePresence mode="popLayout">
                 {todayNotifs.map((n, i) => (
                   <motion.div
-                    key={`today-${n.type}-${i}`}
+                    key={`today-${n.id || i}`}
                     layout
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className={`notif-item glass ${n.read ? 'notif-read' : ''}`}
+                    className={`notif-item glass ${n.is_read ? 'notif-read' : ''}`}
                   >
-                    <div className="notif-icon" style={{ background: n.read ? 'var(--surface)' : 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-                      {iconMap[n.icon]}
+                    <div className="notif-icon" style={{ background: n.is_read ? 'var(--surface)' : 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                      {getNotificationIcon(n.type)}
                     </div>
                     <div className="notif-content">
-                      <p className="notif-text">{n.text}</p>
-                      <span className="notif-time">{n.time}</span>
+                      <p className="notif-text">{getNotificationText(n)}</p>
+                      <span className="notif-time">{formatRelativeTime(n.created_at)}</span>
                     </div>
-                    {!n.read && <div className="notif-dot" />}
+                    {!n.is_read && <div className="notif-dot" />}
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -126,21 +137,22 @@ export default function Notifications() {
             <AnimatePresence mode="popLayout">
               {earlierNotifs.map((n, i) => (
                 <motion.div
-                  key={`earlier-${n.type}-${i}`}
+                  key={`earlier-${n.id || i}`}
                   layout
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className={`notif-item glass notif-read`}
+                  className={`notif-item glass ${n.is_read ? 'notif-read' : ''}`}
                 >
-                  <div className="notif-icon" style={{ background: 'var(--surface)' }}>
-                    {iconMap[n.icon]}
+                  <div className="notif-icon" style={{ background: n.is_read ? 'var(--surface)' : 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                    {getNotificationIcon(n.type)}
                   </div>
                   <div className="notif-content">
-                    <p className="notif-text">{n.text}</p>
-                    <span className="notif-time">{n.time}</span>
+                    <p className="notif-text">{getNotificationText(n)}</p>
+                    <span className="notif-time">{formatRelativeTime(n.created_at)}</span>
                   </div>
+                  {!n.is_read && <div className="notif-dot" />}
                 </motion.div>
               ))}
             </AnimatePresence>

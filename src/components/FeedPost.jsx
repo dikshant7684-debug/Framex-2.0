@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { usePostStore } from '../stores/postStore'
+import { useAuthStore } from '../stores/authStore'
+import { useUiStore } from '../stores/uiStore'
+import CommentModal from './CommentModal'
 
 function formatTime(timestamp) {
   const diff = Date.now() - timestamp
@@ -53,6 +56,19 @@ export default function FeedPost({ post }) {
   const [saved, setSaved] = useState(post.saved)
   const [likesCount, setLikesCount] = useState(post.likes)
   const [animKey, setAnimKey] = useState(0)
+  const [showCommentModal, setShowCommentModal] = useState(false)
+
+  useEffect(() => {
+    setLikesCount(post.likes)
+  }, [post.likes])
+
+  useEffect(() => {
+    setLiked(post.liked)
+  }, [post.liked])
+
+  useEffect(() => {
+    setSaved(post.saved)
+  }, [post.saved])
 
   const likePost = usePostStore(s => s.likePost)
   const unlikePost = usePostStore(s => s.unlikePost)
@@ -157,12 +173,27 @@ export default function FeedPost({ post }) {
           <span>Like</span>
         </motion.button>
 
-        <button className="post-action">
+        <button className="post-action" onClick={() => {
+          const user = useAuthStore.getState().user
+          if (!user) { useUiStore.getState().addToast('Please log in to comment', 'info'); return }
+          setShowCommentModal(true)
+        }}>
           <span className="post-action-icon">{icons.comment}</span>
           <span>Comment</span>
         </button>
 
-        <button className="post-action">
+        <button className="post-action" onClick={() => {
+          const url = `${window.location.origin}/post/${post.id}`
+          if (navigator.share) {
+            navigator.share({ title: post.username, text: post.content, url }).catch(() => {})
+          } else {
+            navigator.clipboard.writeText(url).then(() => {
+              useUiStore.getState().addToast('Link copied to clipboard', 'success')
+            }).catch(() => {
+              useUiStore.getState().addToast('Failed to copy link', 'error')
+            })
+          }
+        }}>
           <span className="post-action-icon">{icons.share}</span>
           <span>Share</span>
         </button>
@@ -178,6 +209,7 @@ export default function FeedPost({ post }) {
       </div>
 
       <style>{postStyles}</style>
+      {showCommentModal && <CommentModal post={post} onClose={() => setShowCommentModal(false)} />}
     </motion.div>
   )
 }

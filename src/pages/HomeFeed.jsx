@@ -45,7 +45,7 @@ function mapPost(post) {
     likes: post.likes ?? 0,
     comments: post.comments ?? 0,
     liked: post.isLiked ?? false,
-    saved: false,
+    saved: post.saved ?? false,
   }
 }
 
